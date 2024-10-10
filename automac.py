@@ -630,6 +630,9 @@ class MacosSetup:
         return self.fs.link(master_file, alias)
 
     def mkdirs(self, *paths):
+        """
+        Create given FS directories, all necessary parents will be created also.
+        """
         return self.fs.mkdirs(*paths)
 
     def unset_hidden_flag(self, *paths: str):
