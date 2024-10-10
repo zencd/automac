@@ -41,3 +41,8 @@ org.chromium.Chromium.framework.AlertNotificationService 41951254 00000010100000
 # menu bar clock setup
 
 https://github.com/tech-otaku/menu-bar-clock
+
+# utils to manage app capabilities to access folders and devices
+
+- https://github.com/carlashley/tccprofile
+- https://github.com/jslegendre/tccplus
