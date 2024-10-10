@@ -1,0 +1,11 @@
+/.idea
+/.venv
+.DS_Store
+__pycache__
+/diff
+/scenario*.py
+/qbittorrent-scenario.sh
+/interactive.py
+/interactive.sh
+/tmp*
+/sudo*.py
