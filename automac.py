@@ -439,8 +439,8 @@ class Files:
 
 class MacosSetup:
 
-    def __init__(self, lookup_dirs: list[str]):
-        self.lookup_dirs = [self._prepare_lookup_dir(x) for x in lookup_dirs]
+    def __init__(self):
+        self._lookup_dirs = []
         self.brew = BrewManager(self)  # type: BrewManager
         self.defaults = Defaults(self)  # type: Defaults
         self.scutil = Scutil(self)  # type: Scutil
@@ -471,9 +471,13 @@ class MacosSetup:
             for msg in self.manual_steps:
                 print(f'- {msg}')
 
-    def _prepare_lookup_dir(self, path):
-        path = os.path.expanduser(str(path))
-        return Path(os.path.expanduser(str(path)))
+    def add_lookup_folder(self, path: str):
+        self._lookup_dirs.append(self._prepare_lookup_dir(path))
+
+    def _prepare_lookup_dir(self, path: str):
+        path = Path(path).expanduser()
+        assert os.path.exists(path), path
+        return path
 
     def _resolve_serial_number(self):
         rc, stdout = self.exec_and_capture(['system_profiler', 'SPHardwareDataType', '-json'])
@@ -487,7 +491,8 @@ class MacosSetup:
                 self.abort(f'Missing file {file}')
             return path
         else:
-            for lookup_dir in self.lookup_dirs:
+            # todo start looking in CWD
+            for lookup_dir in self._lookup_dirs:
                 file_full = lookup_dir / path
                 return file_full
         self.abort(f'Missing file {file}')
@@ -873,17 +878,30 @@ class MacosSetup:
 
     def resolve_app_path(self, app_name: str):
         """
-        Resolve absolute path to a macos app.
+        Resolve the absolute path to a macos app.
         Fails if path doesn't exist.
         :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
         :return: like '/Applications/Sublime Text.app'
+        """
+        app_path = self.find_app_path()
+        assert os.path.exists(app_path), app_path
+        return app_path
+
+    def find_app_path(self, app_name: str):
+        """
+        Find the absolute path to a macos app.
+        :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
+        :return: like '/Applications/Sublime Text.app' or None
         """
         if os.path.isabs(app_name):
             app_path = app_name
         else:
             app_path = f'/Applications/{app_name}.app'
-        assert os.path.exists(app_path), app_path
-        return app_path
+        return app_path if os.path.exists(app_path) else None
+
+    def app_exists(self, app_name: str):
+        path = self.find_app_path(app_name)
+        return bool(path)
 
     def get_app_bundle_id(self, app_name_or_path: str):
         rc, bundle_id = self.exec_and_capture(['osascript', '-e', f'id of app "{app_name_or_path}"'])
