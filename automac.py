@@ -2,6 +2,7 @@ import getpass
 import json
 import logging
 import os
+import platform
 import plistlib
 import re
 import shlex
@@ -39,7 +40,7 @@ def drop_nones(list_: list):
 class Notifications:
     flags_base = 0b00000000100000000010000000001110  # notifications off, badges, sounds, banners, actual for macos 13.7
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
         self.do_reload_configs = False
 
@@ -116,7 +117,7 @@ class Notifications:
 class Iterm2:
     DOMAIN = 'com.googlecode.iterm2'
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def quit_silently(self):
@@ -128,7 +129,7 @@ class Iterm2:
 class AppCleaner:
     DOMAIN = 'net.freemacsoft.AppCleaner'
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def update_disabled(self):
@@ -143,7 +144,7 @@ class AppCleaner:
 
 
 class FileAssoc:
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def extensions(self, app_name: str, role: str, extensions: list[str]):
@@ -178,7 +179,7 @@ class BrewManager:
 
     # XXX simple command `brew install xxx` tries to upgrade such package, so not using it
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
         self.installed_packages_ = None  # populated on demand
 
@@ -295,7 +296,7 @@ class BrewManager:
 
 class Scutil:
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def write_if_needed(self, key: str, value: str):
@@ -309,7 +310,11 @@ class Scutil:
 
 
 class Defaults:
-    def __init__(self, app: 'MacosSetup'):
+    """
+    An interface to the `defaults` utility that manages macos plist files.
+    """
+
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def read(self, domain: str, key: str):
@@ -318,6 +323,16 @@ class Defaults:
         return value if rc == 0 else ''
 
     def write(self, domain: str, key: str, value: Union[str, int, bool], current_host=False, sudo_write=False):
+        """
+        Write a value into domain/key if not written yet.
+        :param domain:
+        :param key:
+        :param value:
+        :param current_host:
+        :param sudo_write:
+        :return:
+        """
+
         def norm(val):
             if isinstance(val, bool):
                 return '1' if val else '0'
@@ -344,6 +359,14 @@ class Defaults:
                 self.app.exec(cmd)
 
     def write_object(self, domain: str, key: str, new_value: Union[list, dict]):
+        """
+        Write a value into domain/key if not written yet.
+        :param domain:
+        :param key:
+        :param new_value:
+        :return:
+        """
+
         def dict_to_plist_xml(value: dict):
             """
             :param value: like {'1': 'y.MM.dd'}
@@ -368,6 +391,12 @@ class Defaults:
             self.app.exec(['defaults', 'write', domain, key, new_value_xml_str])
 
     def delete_key(self, domain: str, key: str):
+        """
+        Delete a value by the given domain/key if one exists.
+        :param domain:
+        :param key:
+        :return:
+        """
         cmd = ['defaults', 'read', domain, key]
         rc, value = self.app.exec_and_capture(cmd, check=False)
         key_exists = rc == 0
@@ -377,17 +406,17 @@ class Defaults:
 
 class System:
 
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def current_timezone(self):
-        # output is like '/var/db/timezone/zoneinfo/Europe/Moscow'
         rc, path = self.app.exec_and_capture(['readlink', '/etc/localtime'])
+        # path is like '/var/db/timezone/zoneinfo/Europe/Moscow'
         return path.replace('/var/db/timezone/zoneinfo/', '')
 
 
 class Files:
-    def __init__(self, app: 'MacosSetup'):
+    def __init__(self, app: 'AutoMac'):
         self.app = app
 
     def link(self, master_file: str, alias: str):
@@ -437,7 +466,7 @@ class Files:
             self.app.sudo(['chflags', 'nohidden', path])
 
 
-class MacosSetup:
+class AutoMac:
 
     def __init__(self):
         self._lookup_dirs = []
@@ -571,7 +600,7 @@ class MacosSetup:
 
     def run_app(self, app: str):
         """
-        Make sure the app is running.
+        Make sure the given app is running.
         :param app like 'TopNotch' or '/Applications/TopNotch.app'
         """
         base_name = re.sub(r'.*/', '', app)
@@ -598,6 +627,12 @@ class MacosSetup:
         self.exec([executor, script_file])
 
     def user_shell(self, shell_path: str):
+        """
+        Change user shell to a given path.
+        If the shell not in `/etc/shells` yet, then it will be added.
+        :param shell_path: like `/opt/homebrew/bin/bash`
+        """
+
         def current_shell():
             rc, stdout = self.exec_and_capture(['dscl', '.', '-read', f'/Users/{get_login()}', 'UserShell'],
                                                check=False)
@@ -627,11 +662,19 @@ class MacosSetup:
             self.manual_step('New shell session required')
 
     def link(self, master_file: str, alias: str):
+        """
+        An equivalent of `ln -s master_file alias`.
+        If `alias` is a real file, it will be removed and replaced with a link.
+        :param master_file:
+        :param alias:
+        :return:
+        """
         return self.fs.link(master_file, alias)
 
     def mkdirs(self, *paths):
         """
-        Create given FS directories, all necessary parents will be created also.
+        Create given directories; all necessary parents will be created also.
+        Works like `mkdir -p`.
         """
         return self.fs.mkdirs(*paths)
 
@@ -647,6 +690,9 @@ class MacosSetup:
             self.sudo(['systemsetup', '-settimezone', tz_name])
 
     def all_computer_names(self, name):
+        """
+        Change computer names: basic machine name, host name, local host name, samba name.
+        """
         self.computer_name(name)
         self.host_name(name)
         self.local_host_name(name)
@@ -886,7 +932,7 @@ class MacosSetup:
         :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
         :return: like '/Applications/Sublime Text.app'
         """
-        app_path = self.find_app_path()
+        app_path = self.find_app_path(app_name)
         assert os.path.exists(app_path), app_path
         return app_path
 
@@ -920,3 +966,20 @@ class MacosSetup:
         assert os.path.exists(path)
         rc, stdout = self.exec_and_capture(['xattr', path])
         return stdout.splitlines()
+
+    def get_mac_version(self):
+        """
+        Return current macos version as a three-int tuple.
+        """
+
+        def str_to_int(s):
+            try:
+                return int(s)
+            except ValueError:
+                return 0
+
+        tup = platform.mac_ver()[0].split('.')
+        tup = list(map(str_to_int, tup))
+        while len(tup) < 3:
+            tup.append(0)
+        return tuple(tup)

@@ -1,6 +1,6 @@
 # automac
 
-A terminal program that tunes your macos settings to a wanted state in one step.
+A utility that tunes macos settings to a wanted state in one step.
 
 ## It can
 
@@ -28,8 +28,7 @@ A terminal program that tunes your macos settings to a wanted state in one step.
 
 ## Usage
 
-```
-cd a-folder-with-your-prefs
-curl -O 'https://raw.githubusercontent.com/zencd/automac/refs/heads/master/automac.py'
-python3 your-prefs.py
-```
+- `cd a-folder-with-your-prefs`
+- edit `your-prefs.py`
+- `curl -O 'https://raw.githubusercontent.com/zencd/automac/refs/heads/master/automac.py'`
+- `python3 your-prefs.py`
