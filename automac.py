@@ -891,11 +891,11 @@ class MacosSetup:
 
     def quarantine_remove_app(self, app_name: str):
         app_path = self.resolve_app_path(app_name)
-        xattrs = self.get_xattrs(app_path)
+        xattrs = self._get_xattrs(app_path)
         if 'com.apple.quarantine' in xattrs:
             self.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
 
-    def get_xattrs(self, path: str):
+    def _get_xattrs(self, path: str):
         assert os.path.exists(path)
         rc, stdout = self.exec_and_capture(['xattr', path])
         return stdout.splitlines()
