@@ -952,6 +952,10 @@ class AutoMac:
         path = self.find_app_path(app_name)
         return bool(path)
 
+    def file_exists(self, path: str):
+        path = Path(path).expanduser()
+        return path.exists()
+
     def get_app_bundle_id(self, app_name_or_path: str):
         rc, bundle_id = self.exec_and_capture(['osascript', '-e', f'id of app "{app_name_or_path}"'])
         return bundle_id
