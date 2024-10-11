@@ -198,7 +198,9 @@ class BrewManager:
         return set(packages)
 
     def install_homebrew(self):
+        logging.debug('install_homebrew')
         if not self._brew_exists():
+            logging.debug('brew not found')
             # brew prohibits running it as sudo
             self.app.exec_temp_file(executor='bash', content=[
                 '''/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'''
@@ -619,6 +621,7 @@ class AutoMac:
         self.sudo([executor, script_file])
 
     def exec_temp_file(self, content: list, executor='bash'):
+        logging.debug('exec_temp_file')
         assert executor
         assert content
         script_file = tempfile.mktemp('.sh')
