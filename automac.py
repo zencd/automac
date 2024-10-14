@@ -435,7 +435,7 @@ class Files:
                 else:
                     self.remove(alias)
             elif os.path.isdir(alias):
-                self.app.abort(f'Param `alias` cannot be a directory: {alias}')
+                self.app.abort(f'Param `alias` cannot be an existing directory: {alias}')
             else:
                 self.remove(alias)
         self.mkdir(str(Path(alias).parent))
