@@ -515,6 +515,10 @@ class AutoMac:
         root = json.loads(stdout)
         return root['SPHardwareDataType'][0]['serial_number']  # todo safe read
 
+    def is_virtual_machine(self):
+        rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"], check=False)
+        return rc == 0
+
     def _resolve_file(self, file):
         path = Path(file)
         if path.is_absolute():
@@ -620,14 +624,16 @@ class AutoMac:
         Path(script_file).write_text(text)
         self.sudo([executor, script_file])
 
-    def exec_temp_file(self, content: list, executor='bash'):
+    def exec_temp_file(self, content: list, executor='bash', check=True):
         logging.debug('exec_temp_file')
         assert executor
         assert content
         script_file = tempfile.mktemp('.sh')
         text = '\n'.join(content)
+        for line in content:
+            print(f'EXEC: {line}')
         Path(script_file).write_text(text)
-        self.exec([executor, script_file])
+        return self.exec([executor, script_file], check=check)
 
     def user_shell(self, shell_path: str):
         """
@@ -973,6 +979,9 @@ class AutoMac:
         assert os.path.exists(path)
         rc, stdout = self.exec_and_capture(['xattr', path])
         return stdout.splitlines()
+
+    def get_mac_version_str(self):
+        return platform.mac_ver()[0]
 
     def get_mac_version(self):
         """
