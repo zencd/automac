@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function install_tools_if_needed() {
+function install_xcode_command_line_tools() {
   # install xcode cli tools via terminal
   # try the gui installer if failed
   # original hack: https://github.com/Homebrew/install/blob/master/install.sh
@@ -23,6 +23,6 @@ function install_tools_if_needed() {
   fi
 }
 
-install_tools_if_needed
+install_xcode_command_line_tools
 py_file="$(dirname $0)/automac.py"
 (set -x; python3 "$py_file" $*)

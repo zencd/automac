@@ -516,7 +516,8 @@ class AutoMac:
         return root['SPHardwareDataType'][0]['serial_number']  # todo safe read
 
     def is_virtual_machine(self):
-        rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"], check=False)
+        rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"],
+                                 check=False)
         return rc == 0
 
     def _resolve_file(self, file):
@@ -999,3 +1000,8 @@ class AutoMac:
         while len(tup) < 3:
             tup.append(0)
         return tuple(tup)
+
+    def screen_lock_off(self, password: str = None):
+        cmd = ['sysadminctl', '-screenLock', 'off', '-password', password]
+        cmd = drop_nones(cmd)
+        self.exec(cmd)
