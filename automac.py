@@ -159,18 +159,23 @@ class FileAssoc:
     def extensions(self, app_name: str, role: str, extensions: list[str]):
         # todo check duti installed
         # todo resolve path to duti in runtime
-        assert role in {'editor', 'viewer'}
+        assert role in {'none', 'viewer', 'editor', 'all'}
         extensions = map(str.strip, extensions)
         extensions = filter(bool, extensions)
         extensions = list(extensions)
         bundle_id = self.app.get_app_bundle_id(app_name)
         for ext in extensions:
             assert '.' not in ext
-            cur_bundle = self._get_current_bundle_by_ext(ext)
-            if bundle_id != cur_bundle:
+            bundle_id_before = self._get_current_bundle_by_ext(ext)
+            if bundle_id != bundle_id_before:
+                # logging.debug(f'Change handler for {ext}: {cur_bundle} -> {bundle_id}')
                 cmd = ['/opt/homebrew/bin/duti', '-s', bundle_id, f'.{ext}', role]
-                print(shlex.join(cmd))
-                # self.app.exec(cmd)
+                self.app.exec(cmd)
+                bundle_id_after = self._get_current_bundle_by_ext(ext)
+                if bundle_id_before == bundle_id_after:
+                    logging.warning(
+                        f'Failed reassigning `{ext}` from `{bundle_id_before}` to `{bundle_id}` with role `{role}`. '
+                        'Probably you want a stronger role: `editor` or `all`')
 
     def _get_current_bundle_by_ext(self, ext):
         rc, cur_settings = self.app.exec_and_capture(['/opt/homebrew/bin/duti', '-x', ext], check=False)
@@ -497,8 +502,8 @@ class AutoMac:
 
     def __enter__(self):
         self._enter_called = True
-        # logging.basicConfig(level=logging.DEBUG)
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
+        # logging.basicConfig(level=logging.INFO)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -513,6 +518,7 @@ class AutoMac:
                 print(f'- {msg}')
 
     def add_lookup_folder(self, path: str):
+        logging.debug(f'add_lookup_folder {path}')
         self._lookup_dirs.append(self._prepare_lookup_dir(path))
 
     def _prepare_lookup_dir(self, path: str):
@@ -939,8 +945,8 @@ class AutoMac:
         """Works; killall Dock."""
         self.defaults.write('com.apple.dock', 'orientation', 'bottom')
 
-    def associate_file_extensions(self, app_name, role, extensions: list[str]):
-        self.assoc.extensions('Sublime Text', 'editor', extensions)
+    def associate_file_extensions(self, app_name: str, role: str, extensions: list[str]):
+        self.assoc.extensions(app_name, role, extensions)
 
     def close_windows_when_quitting_an_app(self):
         # todo
@@ -978,6 +984,10 @@ class AutoMac:
         return path.exists()
 
     def get_app_bundle_id(self, app_name_or_path: str):
+        """
+        :param app_name_or_path:
+        :return: bundle id; or throw exception if app not found
+        """
         rc, bundle_id = self.exec_and_capture(['osascript', '-e', f'id of app "{app_name_or_path}"'])
         return bundle_id
 
