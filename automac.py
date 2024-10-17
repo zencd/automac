@@ -12,7 +12,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 from xml.etree.ElementTree import Element
 
 
@@ -38,7 +38,7 @@ def drop_nones(list_: list):
 
 
 class Notifications:
-    flags_base = 0b00000000100000000010000000001110  # notifications off, badges, sounds, banners, actual for macos 13.7
+    flags_base = 8396814  # macos 13.7 defaults: notifications off, badges, sounds, banners
 
     def __init__(self, app: 'AutoMac'):
         self.app = app
@@ -52,6 +52,12 @@ class Notifications:
 
     def change_app(self, app_name, enable: bool):
         self._enable_app_impl(app_name, enable)
+
+    def enable_bundle(self, bundle_id: str, app_path: str = None):
+        self._change_ncpref(bundle_id, app_path, True)
+
+    def disable_bundle(self, bundle_id: str, app_path: str = None):
+        self._change_ncpref(bundle_id, app_path, False)
 
     def _change_ncpref(self, bundle_id: str, app_path: str, enable: bool):
         """
@@ -94,18 +100,21 @@ class Notifications:
         apps = xml.get('apps')
         app_record_found = change_existing_ncpref_record()
         if not app_record_found:
-            add_new_ncpref_record()
+            if app_path:
+                add_new_ncpref_record()
+            else:
+                logging.debug(f'New notification entry cannot be created for bundle id {bundle_id} because app path unknown')
 
     def _enable_app_impl(self, app_name, enable: bool):
         def symlink_to_file(path):
             # convert '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/Current/Helpers/Brave Browser Helper (Alerts).app'
-            # into  '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/129.1.70.123/Helpers/Brave Browser Helper (Alerts).app'
+            # into '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/129.1.70.123/Helpers/Brave Browser Helper (Alerts).app'
             # because macos uses versioned paths in ncprefs; not sure if it matters
             return os.path.realpath(path)
 
         app_path = self.app.resolve_app_path(app_name)
         app_path = symlink_to_file(app_path)
-        assert os.path.exists(app_path)
+        assert os.path.exists(app_path), f'Missing path: {app_path}'
         bundle_id = self.app.get_app_bundle_id(app_path)
         if bundle_id:
             self._change_ncpref(bundle_id, app_path, enable)
@@ -425,7 +434,7 @@ class Files:
         # print(f'link_forced: {alias} -> {master_file}')
         master_file = os.path.expanduser(master_file)
         alias = os.path.expanduser(alias)
-        assert os.path.exists(master_file)
+        assert os.path.exists(master_file), f'Missing master_file: {master_file}'
         if os.path.lexists(alias):
             if os.path.islink(alias):
                 current_target = os.readlink(alias)
@@ -488,7 +497,8 @@ class AutoMac:
 
     def __enter__(self):
         self._enter_called = True
-        logging.basicConfig(level=logging.DEBUG)
+        # logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -517,7 +527,7 @@ class AutoMac:
 
     def is_virtual_machine(self):
         rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"],
-                                 check=False)
+                                 check=False, log=False)
         return rc == 0
 
     def _resolve_file(self, file):
@@ -564,8 +574,8 @@ class AutoMac:
             self.abort(f'Shell command failed: {cmd_str} - exit code {p.returncode}')
         return p.returncode
 
-    def exec(self, cmd: Union[str, list], check=True):
-        return self._exec_interactive(cmd, check=check)
+    def exec(self, cmd: Union[str, list], check=True, log=True):
+        return self._exec_interactive(cmd, check=check, log=log)
 
     def sudo(self, cmd: Union[str, list], check=True, charset='utf-8'):
         if isinstance(cmd, str):
@@ -625,16 +635,17 @@ class AutoMac:
         Path(script_file).write_text(text)
         self.sudo([executor, script_file])
 
-    def exec_temp_file(self, content: list, executor='bash', check=True):
+    def exec_temp_file(self, content: list, executor='bash', check=True, log=True):
         logging.debug('exec_temp_file')
         assert executor
         assert content
         script_file = tempfile.mktemp('.sh')
         text = '\n'.join(content)
-        for line in content:
-            print(f'EXEC: {line}')
+        if log:
+            for line in content:
+                print(f'EXEC LINE: {line}')
         Path(script_file).write_text(text)
-        return self.exec([executor, script_file], check=check)
+        return self.exec([executor, script_file], check=check, log=log)
 
     def user_shell(self, shell_path: str):
         """
