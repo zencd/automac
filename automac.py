@@ -165,7 +165,11 @@ class FileAssoc:
         extensions = list(extensions)
         bundle_id = self.app.get_app_bundle_id(app_name)
         for ext in extensions:
-            assert '.' not in ext
+            ext_orig = ext
+            ext = ext[1:] if ext.startswith('.') else ext
+            if '.' in ext or not ext:
+                logging.warning(f'Improper extension `{ext_orig}` - skipping')
+                continue
             bundle_id_before = self._get_current_bundle_by_ext(ext)
             if bundle_id != bundle_id_before:
                 # logging.debug(f'Change handler for {ext}: {cur_bundle} -> {bundle_id}')
@@ -937,16 +941,28 @@ class AutoMac:
             ])
 
     def keyboard_navigation_enabled(self):
-        """Works. Logout required."""
-        # todo find difference btw 2 and 3
+        """
+        Works. You may be required to restart an app.
+        Sonoma uses int values 0 and 2.
+        """
         self.defaults.write('NSGlobalDomain', 'AppleKeyboardUIMode', 2)
+
+    def keyboard_navigation_disabled(self):
+        """
+        Works. You may be required to restart an app.
+        Sonoma uses int values 0 and 2.
+        """
+        self.defaults.write('NSGlobalDomain', 'AppleKeyboardUIMode', 0)
 
     def dock_orientation_bottom(self):
         """Works; killall Dock."""
         self.defaults.write('com.apple.dock', 'orientation', 'bottom')
 
-    def associate_file_extensions(self, app_name: str, role: str, extensions: list[str]):
-        self.assoc.extensions(app_name, role, extensions)
+    def assoc_file_extensions_viewer(self, app_name: str, extensions: list[str]):
+        self.assoc.extensions(app_name, 'viewer', extensions)
+
+    def assoc_file_extensions_editor(self, app_name: str, extensions: list[str]):
+        self.assoc.extensions(app_name, 'editor', extensions)
 
     def close_windows_when_quitting_an_app(self):
         # todo
