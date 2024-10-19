@@ -1058,6 +1058,7 @@ class AutoMac:
         :param password user will be prompted for password if missing
         """
         # XXX sysadminctl prints current status to stderr bsr
+        # XXX password '-' means that user will be asked for it in prompt
         rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'], stderr=subprocess.STDOUT)
         if 'screenLock is off' not in text:
             self.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
