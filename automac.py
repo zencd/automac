@@ -526,9 +526,10 @@ class AutoMac:
                 print(f'- {msg}')
 
     def add_lookup_folder(self, path: str):
-        status = 'exists' if os.path.exists(path) else 'missing'
-        logging.debug(f'add_lookup_folder {path} ({status})')
-        self._lookup_dirs.append(self._prepare_lookup_dir(path, check=False))
+        resolved = self._prepare_lookup_dir(path, check=False)
+        status = 'exists' if os.path.exists(resolved) else 'missing'
+        logging.debug(f'add_lookup_folder {resolved} ({status})')
+        self._lookup_dirs.append(resolved)
 
     def _prepare_lookup_dir(self, path: str, check=True):
         path = Path(path).expanduser()
@@ -1052,8 +1053,10 @@ class AutoMac:
         return tuple(tup)
 
     def screen_lock_off(self, password: str = None):
-        text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'])
+        """
+        :param password user will be prompted for password if missing
+        """
+        # todo sysadminctl writes status to stderr, so its output is not captured now
+        rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'])
         if 'screenLock is off' not in text:
-            cmd = ['sysadminctl', '-screenLock', 'off', '-password', password]
-            cmd = drop_nones(cmd)
-            self.exec(cmd)
+            self.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
