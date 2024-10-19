@@ -1005,6 +1005,7 @@ class AutoMac:
         :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
         :return: like '/Applications/Sublime Text.app' or None
         """
+        # a place with system apps: /System/Library/CoreServices
         if os.path.isabs(app_name):
             app_path = app_name
         else:
