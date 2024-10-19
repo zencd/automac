@@ -56,7 +56,7 @@ class Notifications:
     def enable_bundle(self, bundle_id: str, app_path: str = None):
         self._change_ncpref(bundle_id, app_path, True)
 
-    def disable_bundle(self, bundle_id: str, app_path: str = None):
+    def disable_bundle_id(self, bundle_id: str, app_path: str = None):
         self._change_ncpref(bundle_id, app_path, False)
 
     def _change_ncpref(self, bundle_id: str, app_path: str, enable: bool):
@@ -498,7 +498,7 @@ class AutoMac:
         self.assoc = FileAssoc(self)  # type: FileAssoc
         self.system = System(self)  # type: System
         self.fs = Files(self)  # type: Files
-        self.notifications = Notifications(self)
+        self.notifications = Notifications(self)  # type: Notifications
         self.appcleaner = AppCleaner(self)  # type: AppCleaner
         self.iterm2 = Iterm2(self)  # type: Iterm2
         self.manual_steps = []
@@ -718,6 +718,7 @@ class AutoMac:
         return self.fs.unset_hidden_flag(*paths)
 
     def timezone(self, tz_name):
+        # todo add function to list available tz
         # immediate effect
         if tz_name == self.system.current_timezone():
             pass
@@ -998,7 +999,9 @@ class AutoMac:
         if os.path.isabs(app_name):
             app_path = app_name
         else:
-            app_path = f'/Applications/{app_name}.app'
+            if not app_name.endswith('.app'):
+                app_name = f'{app_name}.app'
+            app_path = f'/Applications/{app_name}'
         return app_path if os.path.exists(app_path) else None
 
     def app_exists(self, app_name: str):
