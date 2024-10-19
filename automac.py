@@ -112,7 +112,10 @@ class Notifications:
             # because macos uses versioned paths in ncprefs; not sure if it matters
             return os.path.realpath(path)
 
-        app_path = self.app.resolve_app_path(app_name)
+        app_path = self.app.find_app_path(app_name)
+        if not app_path:
+            logging.warning(f'''Missing app `{app_name}` - it won't be enabled''')
+            return
         app_path = symlink_to_file(app_path)
         assert os.path.exists(app_path), f'Missing path: {app_path}'
         bundle_id = self.app.get_app_bundle_id(app_path)
@@ -216,9 +219,8 @@ class BrewManager:
         return set(packages)
 
     def install_homebrew(self):
-        logging.debug('install_homebrew')
         if not self._brew_exists():
-            logging.debug('brew not found')
+            logging.debug('brew not found, installing it')
             # brew prohibits running it as sudo
             self.app.exec_temp_file(executor='bash', content=[
                 '''/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'''
@@ -273,7 +275,7 @@ class BrewManager:
             logging.debug(f'Already installed via brew: {package}')
             return
         if existing_macos_apps:
-            print(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
+            logging.debug(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
             return
         # self.setup_manager.exec_string(f'brew install --cask {package}')
         self.app.exec([self.brew, 'install', '--cask', package])
@@ -508,6 +510,8 @@ class AutoMac:
         self._enter_called = True
         logging.basicConfig(level=logging.DEBUG)
         # logging.basicConfig(level=logging.INFO)
+        logging.info('AutoMac started')  # todo logged as root x_x
+        logging.info(f'{platform.system()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -522,12 +526,14 @@ class AutoMac:
                 print(f'- {msg}')
 
     def add_lookup_folder(self, path: str):
-        logging.debug(f'add_lookup_folder {path}')
-        self._lookup_dirs.append(self._prepare_lookup_dir(path))
+        status = 'exists' if os.path.exists(path) else 'missing'
+        logging.debug(f'add_lookup_folder {path} ({status})')
+        self._lookup_dirs.append(self._prepare_lookup_dir(path, check=False))
 
-    def _prepare_lookup_dir(self, path: str):
+    def _prepare_lookup_dir(self, path: str, check=True):
         path = Path(path).expanduser()
-        assert os.path.exists(path), path
+        if check:
+            assert os.path.exists(path), path
         return path
 
     def _resolve_serial_number(self):
@@ -646,7 +652,6 @@ class AutoMac:
         self.sudo([executor, script_file])
 
     def exec_temp_file(self, content: list, executor='bash', check=True, log=True):
-        logging.debug('exec_temp_file')
         assert executor
         assert content
         script_file = tempfile.mktemp('.sh')
@@ -739,6 +744,7 @@ class AutoMac:
 
     def local_host_name(self, name):
         assert name
+        # todo dots or underscores leads to error 'Invalid argument'
         self.scutil.write_if_needed('LocalHostName', name)
 
     def samba_name(self, name):
@@ -964,6 +970,9 @@ class AutoMac:
     def assoc_file_extensions_editor(self, app_name: str, extensions: list[str]):
         self.assoc.extensions(app_name, 'editor', extensions)
 
+    def assoc_file_extensions_all(self, app_name: str, extensions: list[str]):
+        self.assoc.extensions(app_name, 'all', extensions)
+
     def close_windows_when_quitting_an_app(self):
         # todo
         pass
@@ -976,6 +985,7 @@ class AutoMac:
         :return: like '/Applications/Sublime Text.app'
         """
         app_path = self.find_app_path(app_name)
+        assert app_path, f'No app found by app name {app_name}'
         assert os.path.exists(app_path), app_path
         return app_path
 
@@ -1039,6 +1049,8 @@ class AutoMac:
         return tuple(tup)
 
     def screen_lock_off(self, password: str = None):
-        cmd = ['sysadminctl', '-screenLock', 'off', '-password', password]
-        cmd = drop_nones(cmd)
-        self.exec(cmd)
+        text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'])
+        if 'screenLock is off' not in text:
+            cmd = ['sysadminctl', '-screenLock', 'off', '-password', password]
+            cmd = drop_nones(cmd)
+            self.exec(cmd)
