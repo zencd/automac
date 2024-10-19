@@ -16,6 +16,13 @@ from typing import Union, Optional
 from xml.etree.ElementTree import Element
 
 
+def str_to_int_or_zero(s):
+    try:
+        return int(s)
+    except ValueError:
+        return 0
+
+
 def get_login():
     # XXX os.getlogin() returns `root` under PyCharm; use getpass instead
     return getpass.getuser()
@@ -103,7 +110,8 @@ class Notifications:
             if app_path:
                 add_new_ncpref_record()
             else:
-                logging.debug(f'New notification entry cannot be created for bundle id {bundle_id} because app path unknown')
+                logging.debug(
+                    f'New notification entry cannot be created for bundle id {bundle_id} because app path unknown')
 
     def _enable_app_impl(self, app_name, enable: bool):
         def symlink_to_file(path):
@@ -1039,15 +1047,8 @@ class AutoMac:
         """
         Return current macos version as a three-int tuple.
         """
-
-        def str_to_int(s):
-            try:
-                return int(s)
-            except ValueError:
-                return 0
-
         tup = platform.mac_ver()[0].split('.')
-        tup = list(map(str_to_int, tup))
+        tup = list(map(str_to_int_or_zero, tup))
         while len(tup) < 3:
             tup.append(0)
         return tuple(tup)
