@@ -565,10 +565,10 @@ class AutoMac:
         for app in app_names:
             self.exec(['killall', app], check=False)
 
-    def exec_and_capture(self, cmd: list, check=True, shell=False, charset='utf-8'):
+    def exec_and_capture(self, cmd: list, check=True, shell=False, charset='utf-8', stderr=subprocess.PIPE):
         cmd_str = shlex.join(cmd)
         # print(f'EXEC: {cmd_str}')
-        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=shell)
+        p = subprocess.Popen(cmd, stderr=stderr, stdout=subprocess.PIPE, shell=shell)
         stdout, stderr = p.communicate()
         if check and p.returncode != 0:
             self.abort(f'Shell command failed: {cmd_str} - exit code {p.returncode}')
@@ -1054,9 +1054,10 @@ class AutoMac:
 
     def screen_lock_off(self, password: str = None):
         """
+        Default screen lock is 300 sec, macos 14.7.
         :param password user will be prompted for password if missing
         """
-        # todo sysadminctl writes status to stderr, so its output is not captured now
-        rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'])
+        # XXX sysadminctl prints current status to stderr bsr
+        rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'], stderr=subprocess.STDOUT)
         if 'screenLock is off' not in text:
             self.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
