@@ -9,3 +9,5 @@ __pycache__
 /interactive.sh
 /tmp*
 /sudo*.py
+/dropbox-mini
+/print-macos-settings
