@@ -152,7 +152,7 @@ class AppCleaner:
     def __init__(self, app: 'AutoMac'):
         self.app = app
 
-    def update_disabled(self):
+    def update_disable(self):
         self.app.defaults.write(self.DOMAIN, 'SUAutomaticallyUpdate', False)
         self.app.defaults.write(self.DOMAIN, 'SUEnableAutomaticChecks', False)
 
@@ -234,7 +234,7 @@ class BrewManager:
                 '''/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'''
             ])
 
-    def share_analytics_disable(self):
+    def analytics_off(self):
         # output of `brew analytics` when disabled:
         #   InfluxDB analytics are disabled.
         #   Google Analytics were destroyed.
@@ -980,7 +980,7 @@ class AutoMac:
     def assoc_file_extensions_editor(self, app_name: str, extensions: list[str]):
         self.assoc.extensions(app_name, 'editor', extensions)
 
-    def assoc_file_extensions_all(self, app_name: str, extensions: list[str]):
+    def assoc_file_extensions(self, app_name: str, extensions: list[str]):
         self.assoc.extensions(app_name, 'all', extensions)
 
     def close_windows_when_quitting_an_app(self):
