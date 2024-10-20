@@ -1064,3 +1064,14 @@ class AutoMac:
         rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'], stderr=subprocess.STDOUT)
         if 'screenLock is off' not in text:
             self.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
+
+    def desktop_iphone_widgets_disable(self):
+        """
+        System Settings / Desktop & Dock / Widgets / Use iPhone widgets.
+        Missing keys `remoteWidgetsEnabled` and `effectiveRemoteWidgetsEnabled` means the feature is enabled (Sonoma).
+        Effect immediate, in System Settings at least (Sonoma).
+        """
+        domain = 'com.apple.chronod'
+        self.defaults.write(domain, 'remoteWidgetsEnabled', False)
+        self.defaults.write(domain, 'effectiveRemoteWidgetsEnabled', False)
+        self.defaults.write(domain, 'hasRemoteWidgets', False)
