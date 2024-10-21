@@ -24,5 +24,5 @@ function install_xcode_command_line_tools() {
 }
 
 install_xcode_command_line_tools
-py_file="$(dirname $0)/automac.py"
-(set -x; python3 "$py_file" $*)
+py_file=$1
+(set -x; python3 "$py_file")

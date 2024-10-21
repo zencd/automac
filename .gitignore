@@ -11,3 +11,4 @@ __pycache__
 /sudo*.py
 /dropbox-mini
 /print-macos-settings
+*.log

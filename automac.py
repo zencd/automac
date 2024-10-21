@@ -520,6 +520,8 @@ class AutoMac:
         # logging.basicConfig(level=logging.INFO)
         logging.info('AutoMac started')  # todo logged as root x_x
         logging.info(f'{platform.system()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
+        logging.debug(f'os.getlogin(): {os.getlogin()}')
+        logging.debug(f'getpass.getuser(): {getpass.getuser()}')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
