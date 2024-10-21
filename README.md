@@ -29,7 +29,6 @@ A utility that tunes macos settings to a wanted state in one step.
 
 ## Usage
 
-- `cd a-folder-with-your-prefs`
-- edit `your-prefs.py`
-- `curl -O 'https://raw.githubusercontent.com/zencd/automac/refs/heads/v1/automac.py'`
-- `python3 your-prefs.py`
+    curl -O 'https://raw.githubusercontent.com/zencd/automac/refs/heads/v1/automac.py'
+    edit myconf.py
+    python3 myconf.py
