@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Union, Optional
 from xml.etree.ElementTree import Element
 
+debug_level = logging.INFO
 
 def str_to_int_or_zero(s):
     try:
@@ -42,6 +43,15 @@ def read_file_lines(path):
 
 def drop_nones(list_: list):
     return list(filter(lambda x: x is not None, list_))
+
+
+def app_name_to_base_name_without_ext(s: str):
+    """
+    Converts: `/Applications/TopNotch.app` => `TopNotch`
+    """
+    s = os.path.split(s)[1]
+    s = re.sub(r'\.app', '', s)
+    return s
 
 
 class Notifications:
@@ -496,9 +506,15 @@ class Files:
             self.app.sudo(['chflags', 'nohidden', path])
 
 
+def get_os_name():
+    s = platform.system()
+    return {'Darwin': 'macOS'}.get(s) or s
+
+
 class AutoMac:
 
     def __init__(self):
+        logging.basicConfig(level=debug_level)
         self._lookup_dirs = []
         self.brew = BrewManager(self)  # type: BrewManager
         self.defaults = Defaults(self)  # type: Defaults
@@ -516,10 +532,9 @@ class AutoMac:
 
     def __enter__(self):
         self._enter_called = True
-        logging.basicConfig(level=logging.DEBUG)
         # logging.basicConfig(level=logging.INFO)
         logging.info('AutoMac started')  # todo logged as root x_x
-        logging.info(f'{platform.system()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
+        logging.info(f'{get_os_name()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
         logging.debug(f'os.getlogin(): {os.getlogin()}')
         logging.debug(f'getpass.getuser(): {getpass.getuser()}')
         return self
@@ -575,9 +590,10 @@ class AutoMac:
         for app in app_names:
             self.exec(['killall', app], check=False)
 
-    def exec_and_capture(self, cmd: list, check=True, shell=False, charset='utf-8', stderr=subprocess.PIPE):
+    def exec_and_capture(self, cmd: list, check=True, shell=False, charset='utf-8', stderr=subprocess.PIPE, log=False):
         cmd_str = shlex.join(cmd)
-        # print(f'EXEC: {cmd_str}')
+        if log:
+            logging.info(f'EXEC: {cmd_str}')
         p = subprocess.Popen(cmd, stderr=stderr, stdout=subprocess.PIPE, shell=shell)
         stdout, stderr = p.communicate()
         if check and p.returncode != 0:
@@ -669,9 +685,17 @@ class AutoMac:
         text = '\n'.join(content)
         if log:
             for line in content:
-                print(f'EXEC LINE: {line}')
+                logging.info(f'EXEC LINE: {line}')
         Path(script_file).write_text(text)
         return self.exec([executor, script_file], check=check, log=log)
+
+    def exec_osa_script(self, text: str, check=True, log=True):
+        assert text
+        script_file = tempfile.mktemp('.sh')
+        if log:
+            logging.info(f'EXEC OSA SCRIPT: {text}')
+        Path(script_file).write_text(text)
+        return self.exec_and_capture(['osascript', script_file], check=check, log=log)
 
     def user_shell(self, shell_path: str):
         """
@@ -1077,3 +1101,32 @@ class AutoMac:
         self.defaults.write(domain, 'remoteWidgetsEnabled', False)
         self.defaults.write(domain, 'effectiveRemoteWidgetsEnabled', False)
         self.defaults.write(domain, 'hasRemoteWidgets', False)
+
+    def login_items_add(self, app_path: str):
+        assert os.path.isabs(app_path), app_path
+        assert os.path.exists(app_path), app_path
+        bn = app_name_to_base_name_without_ext(app_path)
+        cur_items = self.login_items_list()
+        if bn not in cur_items:
+            self._login_items_add_impl(app_path)
+
+    def login_items_list(self):
+        """
+        Return current list of login items in form of ['Dropbox', 'TopNotch'].
+        No full paths or uniq ids.
+        """
+        rc, out = self.exec_osa_script('''tell application "System Events" to get the name of every login item''', log=False)
+        items = out.split(',')
+        items = list(map(str.strip, items))
+        items = list(filter(bool, items))
+        return items
+
+    def _login_items_add_impl(self, app_path: str):
+        """
+        Add a new login item
+        :param app_path full path to an app, like '/Applications/TopNotch.app'
+        """
+        # not sure what param `hidden` means
+        # subsequent addition has no effect, 14.7
+        text = f'''tell application "System Events" to make login item at end with properties {{path:"{app_path}", hidden:true}}'''
+        self.exec_osa_script(text)
