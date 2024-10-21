@@ -11,6 +11,7 @@ A utility that tunes macos settings to a wanted state in one step.
 - manage file associations
 - manage notifications for apps
 - remove an app from quarantine
+- add an app to login items
 
 ## It can't
 
