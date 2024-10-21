@@ -9,7 +9,7 @@ A utility that tunes macos settings to a wanted state in one step.
 - create necessary folders, symbolic links
 - change a variety of macos settings: dock, finder, menu bar, locale, input languages, computer name, etc
 - manage file associations
-- manage an app's notifications
+- manage notifications for apps
 - remove an app from quarantine
 
 ## It can't
@@ -22,9 +22,9 @@ A utility that tunes macos settings to a wanted state in one step.
 
 - this program applies changes if only they are necessary
 - thus repeated execution of the program won't alter OS
-- IDE's autocompletion and python docstrings is the reference
-- thus you'd better edit your preferences file in PyCharm or VS Code
-- your preferences file is just a Python script
+- thus the number of sudo password prompts is reduced to the minimum
+- you write desired settings as an ordinary Python file
+- IDE's handy autocompletion and python docstrings is the reference
 
 ## Usage
 

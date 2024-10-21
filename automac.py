@@ -1123,7 +1123,7 @@ class AutoMac:
 
     def _login_items_add_impl(self, app_path: str):
         """
-        Add a new login item
+        Add a new login item.
         :param app_path full path to an app, like '/Applications/TopNotch.app'
         """
         # not sure what param `hidden` means
