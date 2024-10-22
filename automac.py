@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Union, Optional
 from xml.etree.ElementTree import Element
 
-debug_level = logging.INFO
+debug_level = logging.DEBUG
+# debug_level = logging.INFO
 
 def str_to_int_or_zero(s):
     try:
@@ -25,7 +26,7 @@ def str_to_int_or_zero(s):
 
 
 def get_login():
-    # XXX os.getlogin() returns `root` under PyCharm; use getpass instead
+    # XXX os.getlogin() returns `root` under PyCharm; using getpass instead
     return getpass.getuser()
 
 
@@ -229,7 +230,7 @@ class BrewManager:
         return self.installed_packages_
 
     def _list_installed_packages(self):
-        cmd_str = f'{self.brew} list'
+        cmd_str = f'{self.brew_exe} list'
         p = subprocess.run(cmd_str, shell=True, check=False, capture_output=True, encoding='utf-8')
         assert p.returncode == 0, f'Shell command failed: {cmd_str}'
         packages = p.stdout.splitlines()
@@ -248,11 +249,11 @@ class BrewManager:
         # output of `brew analytics` when disabled:
         #   InfluxDB analytics are disabled.
         #   Google Analytics were destroyed.
-        _, cur_text = self.app.exec_and_capture([self.brew, 'analytics'])
-        if 'disabled' in cur_text:
+        _, cur_text = self.app.exec_and_capture([self.brew_exe, 'analytics'])
+        if 'disabled' in cur_text and 'destroyed' in cur_text:
             pass
         else:
-            self.app.exec([self.brew, 'analytics', 'off'])
+            self.app.exec([self.brew_exe, 'analytics', 'off'])
 
     def install_formulas(self, list_file: str):
         list_file = self.app._resolve_file(list_file)
@@ -270,7 +271,7 @@ class BrewManager:
         if package_lo in self.installed_packages:
             # print(f'Already installed: {package}')
             return
-        self.app.exec([self.brew, 'install', package])
+        self.app.exec([self.brew_exe, 'install', package])
 
     def install_casks(self, list_file: str):
         list_file = self.app._resolve_file(list_file)
@@ -296,10 +297,10 @@ class BrewManager:
             logging.debug(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
             return
         # self.setup_manager.exec_string(f'brew install --cask {package}')
-        self.app.exec([self.brew, 'install', '--cask', package])
+        self.app.exec([self.brew_exe, 'install', '--cask', package])
 
     def _check_existing_brew_cask(self, package):
-        rc, stdout = self.app.exec_and_capture([self.brew, 'info', package], check=False)
+        rc, stdout = self.app.exec_and_capture([self.brew_exe, 'info', package], check=False)
         installed_via_brew = rc == 0 and 'Not installed' not in stdout
         existing_macos_apps = self._find_macos_apps(stdout)
         return installed_via_brew, existing_macos_apps
@@ -321,7 +322,7 @@ class BrewManager:
         return self._resolve_brew_executable() is not None
 
     @property
-    def brew(self):
+    def brew_exe(self):
         if path := self._resolve_brew_executable():
             return path
         else:
@@ -568,6 +569,7 @@ class AutoMac:
         return root['SPHardwareDataType'][0]['serial_number']  # todo safe read
 
     def is_virtual_machine(self):
+        # todo seems only UTM-compatible
         rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"],
                                  check=False, log=False)
         return rc == 0
@@ -792,7 +794,7 @@ class AutoMac:
     def locale_region(self, locale):
         """
         Settings / General / Language & Region / Region
-        :param locale: like 'en_US' or 'en_GB@currency=EUR'
+        :param locale: like `en_US` or `en_GB@currency=EUR`
         """
         self.defaults.write('NSGlobalDomain', 'AppleLocale', locale)
 
@@ -886,7 +888,11 @@ class AutoMac:
         self.defaults.write('com.apple.AppleMultitouchTrackpad', 'Clicking', True)
 
     def trackpad_drag_three_fingers(self):
-        # Pointer Control >  Trackpad Options > Dragging Style: Three Finger Drag; ok; logout required
+        """
+        Drag using three fingers.
+        GUI: Pointer Control >  Trackpad Options > Dragging Style: Three Finger Drag.
+        Works. Logout required.
+        """
         # defaults write com.apple.AppleMultitouchTrackpad Dragging -bool false
         # defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
         self.defaults.write('com.apple.AppleMultitouchTrackpad', 'Dragging', False)
@@ -903,7 +909,9 @@ class AutoMac:
         self.defaults.write('com.apple.menuextra.clock', 'ShowDate', 2)
 
     def menubar_dow_hide(self):
-        """Menu Bar Only > Clock Options > Show day of a week"""
+        """
+        GUI: System Settings > Control Center > Menu Bar Only > Clock Options > Show the day of the week.
+        """
         # defaults write "com.apple.menuextra.clock" ShowDayOfWeek -bool false
         self.defaults.write('com.apple.menuextra.clock', 'ShowDayOfWeek', False)
 
@@ -935,7 +943,9 @@ class AutoMac:
         self.defaults.write('NSGlobalDomain', 'AppleShowAllExtensions', True)
 
     def finder_file_extensions_rename_silently(self):
-        # Disable the warning when changing a file extension; works; immediate
+        """
+        Disable the warning when changing a file extension; works; immediate.
+        """
         # defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
         self.defaults.write('com.apple.finder', 'FXEnableExtensionChangeWarning', False)
 
