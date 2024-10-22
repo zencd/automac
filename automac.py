@@ -547,7 +547,7 @@ class AutoMac:
         self.iterm2 = Iterm2(self)  # type: Iterm2
         self.manual_steps = []
         self.success = True
-        self.machine_serial = self._resolve_serial_number()
+        self._machine_serial = self._resolve_serial_number()
         self._enter_called = False  # todo check it's true when a method called
 
     def __enter__(self):
@@ -586,6 +586,9 @@ class AutoMac:
         rc, stdout = self.exec_and_capture(['system_profiler', 'SPHardwareDataType', '-json'])
         root = json.loads(stdout)
         return root['SPHardwareDataType'][0]['serial_number']  # todo safe read
+
+    def get_machine_serial(self):
+        return self._machine_serial
 
     def is_virtual_machine(self):
         # todo seems only UTM-compatible
@@ -1026,7 +1029,7 @@ class AutoMac:
                 '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>19458</integer><key>KeyboardLayout Name</key><string>RussianWin</string></dict>',
             ])
 
-    def keyboard_navigation_enabled(self):
+    def keyboard_navigation_enable(self):
         """
         Works. You may be required to restart an app.
         Sonoma uses int values 0 and 2.
@@ -1045,12 +1048,21 @@ class AutoMac:
         self.defaults.write('com.apple.dock', 'orientation', 'bottom')
 
     def assoc_file_extensions_viewer(self, app_name: str, extensions: list[str]):
+        """
+        Associate a viewer with the given file types.
+        Can be used for music and video.
+        """
         self.assoc.extensions(app_name, 'viewer', extensions)
 
     def assoc_file_extensions_editor(self, app_name: str, extensions: list[str]):
+        """
+        Associate an editor with the given file types.
+        Can be used for textual files.
+        """
         self.assoc.extensions(app_name, 'editor', extensions)
 
-    def assoc_file_extensions(self, app_name: str, extensions: list[str]):
+    def _assoc_file_extensions_all(self, app_name: str, extensions: list[str]):
+        # not sure someone should use it
         self.assoc.extensions(app_name, 'all', extensions)
 
     def close_windows_when_quitting_an_app(self):

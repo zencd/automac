@@ -70,7 +70,7 @@ with AutoMac() as mac:
 
 ## A broader example
 
-[todo](scenario_basic.py)
+[example-basic.py](example-basic.py)
 
 ## Requirements
 
