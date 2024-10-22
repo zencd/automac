@@ -1,0 +1,22 @@
+[project]
+name = "automac"
+description = "automac"
+version = "1.0.0"
+authors = [
+    { name = "zencd", email = "z@z.com" }
+]
+dependencies = [
+#    "pyspark[ml]",
+#    "sklearn"
+]
+
+[project.optional-dependencies]
+dev = [
+#    "tox",
+#    "pre-commit",
+#    "bump2version"
+]
+
+#[build-system]
+#build-backend = "flit_core.buildapi"
+#requires = ["flit_core >=3.2,<4"]
