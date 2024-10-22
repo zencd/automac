@@ -20,7 +20,7 @@ See below the list of macos releases where it's known to work.
 - remove a freshly installed app from quarantine
 - make an app to open automatically when you log in to Mac
 
-## Principles
+## Principles and Pro's
 
 - `automac` applies changes if only they are necessary
 - thus repeated execution of the program won't alter OS
@@ -78,9 +78,9 @@ with AutoMac() as mac:
   Sequoia is the latest one at the moment of writing.
   Earlier releases not tested yet.
 - Hardware: Apple Silicon (tested) or intel (not checked yet).
-- Python 3. It gonna be installed automatically if missing on a fresh macOS.
+- Python 3. To be installed automatically if missing on a fresh macOS.
 - Apple's command line tools.
-  - They gonna be installed automatically if missing on a fresh macOS.
+  - To be installed automatically if missing on a fresh macOS.
   - Bad: they grow the tools every year, now hitting 850 MB of traffic.
   - Good: if you are using Homebrew (who wouldn't), it's a requirement anyway.
 

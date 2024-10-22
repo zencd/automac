@@ -16,6 +16,8 @@ from typing import Union, Optional
 from xml.etree.ElementTree import Element
 
 debug_level = logging.DEBUG
+
+
 # debug_level = logging.INFO
 
 def str_to_int_or_zero(s):
@@ -53,6 +55,23 @@ def app_name_to_base_name_without_ext(s: str):
     s = os.path.split(s)[1]
     s = re.sub(r'\.app', '', s)
     return s
+
+
+class InputLang:
+
+    def __init__(self, code: int, name: str):
+        self.code = code
+        self.name = name
+
+    def xml_str(self):
+        return f'<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>{self.code}</integer><key>KeyboardLayout Name</key><string>{self.name}</string></dict>'
+
+
+class InputLangs:
+    EN_US = InputLang(0, 'U.S.')
+    EN_GB = InputLang(2, 'British')
+    EN_ABC = InputLang(252, 'ABC')
+    RU_PC = InputLang(19458, 'RussianWin')
 
 
 class Notifications:
@@ -978,7 +997,22 @@ class AutoMac:
         """Display full path in Finder's window/tab title. Restart Finder."""
         self.defaults.write('com.apple.finder', '_FXShowPosixPathInTitle', enable)
 
-    def keyboard_languages_abc_and_ru_pc(self):
+    def keyboard_languages(self, *langs: InputLang, keep_non_keyboard_methods=True):
+        """
+        Logout required.
+        :param keep_non_keyboard_methods todo impl
+        """
+        domain = 'com.apple.HIToolbox'
+        key = 'AppleEnabledInputSources'
+        old_value = self.defaults.read(domain, key)
+        any_missing = any([lang for lang in langs if f'= {lang.code};' not in old_value])  # todo poor implementation now
+        if any_missing:
+            xmls = [lang.xml_str() for lang in langs]
+            cmd = ['defaults', 'write', domain, key, '-array'] + xmls
+            self.exec(cmd)
+
+    def _keyboard_languages_abc_and_ru_pc(self):
+        # todo remove
         # Set two input languages: ABC and Russian PC.
         domain = 'com.apple.HIToolbox'
         key = 'AppleEnabledInputSources'
@@ -1125,7 +1159,8 @@ class AutoMac:
         Return current list of login items in form of ['Dropbox', 'TopNotch'].
         No full paths or uniq ids.
         """
-        rc, out = self.exec_osa_script('''tell application "System Events" to get the name of every login item''', log=False)
+        rc, out = self.exec_osa_script('''tell application "System Events" to get the name of every login item''',
+                                       log=False)
         items = out.split(',')
         items = list(map(str.strip, items))
         items = list(filter(bool, items))
