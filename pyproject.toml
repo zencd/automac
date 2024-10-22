@@ -1,7 +1,8 @@
 [project]
 name = "automac"
 description = "automac"
-version = "1.0.0"
+#version = "1.0.0"
+dynamic = ["version"]
 authors = [
     { name = "zencd", email = "z@z.com" }
 ]
