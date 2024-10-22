@@ -12,7 +12,7 @@ def cask_full(cask, app, enable_notifications=True):
 
 
 with AutoMac() as mac:
-    mac = mac  # type: AutoMac # todo why?!
+    mac = mac  # type: AutoMac # wtf pycharm :(
     mac.add_lookup_folder('~/Dropbox/config/macos')
 
     if not mac.file_exists('~/Dropbox'):

@@ -954,6 +954,10 @@ class AutoMac:
         """Works; killall Dock."""
         self.defaults.write('com.apple.dock', 'orientation', 'left')
 
+    def dock_orientation_right(self):
+        """Works; killall Dock."""
+        self.defaults.write('com.apple.dock', 'orientation', 'right')
+
     def trash_empty_warning_disable(self):
         # Disable the warning lang-before emptying the Trash; works; immediate
         # defaults write com.apple.finder WarnOnEmptyTrash -bool false
@@ -1008,7 +1012,7 @@ class AutoMac:
         domain = 'com.apple.HIToolbox'
         key = 'AppleEnabledInputSources'
         old_value = self.defaults.read(domain, key)
-        any_missing = any([lang for lang in langs if f'= {lang.code};' not in old_value])  # todo poor implementation now
+        any_missing = any(lang for lang in langs if f'= {lang.code};' not in old_value)  # todo poor implementation now
         if any_missing:
             xmls = [lang.xml_str() for lang in langs]
             cmd = ['defaults', 'write', domain, key, '-array'] + xmls
@@ -1159,6 +1163,10 @@ class AutoMac:
         self.defaults.write(domain, 'hasRemoteWidgets', False)
 
     def login_items_add(self, app_path: str):
+        """
+        Make an app running at startup.
+        :param app_path an absolute path like `/Applications/TopNotch.app`
+        """
         assert os.path.isabs(app_path), app_path
         assert os.path.exists(app_path), app_path
         bn = app_name_to_base_name_without_ext(app_path)
