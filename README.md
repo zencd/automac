@@ -43,13 +43,7 @@ python3 myconf.py
 
 ```bash
 cd a-folder-with-your-config
-curl -O 'https://raw.githubusercontent.com/zencd/automac/refs/heads/v1/automac.py'
-# TODO USE ZIP !!!
-# TODO USE ZIP !!!
-# TODO USE ZIP !!!
-# TODO USE ZIP !!!
-# TODO USE ZIP !!!
-# TODO USE ZIP !!!
+curl -LO 'https://raw.githubusercontent.com/zencd/automac/refs/heads/v1/automac.sh'
 bash automac.sh myconf.py
 # Typically you will need to logoff or restart for the changes to take effect.
 # Some security confirmations GUI may pop up during the process.

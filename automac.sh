@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function install_xcode_command_line_tools() {
+function ensure_cli_tools_installed() {
   # install xcode cli tools via terminal
   # try the gui installer if failed
   # original hack: https://github.com/Homebrew/install/blob/master/install.sh
@@ -23,6 +23,9 @@ function install_xcode_command_line_tools() {
   fi
 }
 
-install_xcode_command_line_tools
-py_file=$1
-(set -x; python3 "$py_file")
+conf_py=$1
+ensure_cli_tools_installed
+if ! (pip3 list | grep -w automac >/dev/null); then
+  (set -x; pip3 install --no-cache-dir 'https://github.com/zencd/automac/archive/v1.zip')
+fi
+(set -x; python3 "$conf_py")
