@@ -30,7 +30,8 @@ with AutoMac() as mac:
 
     mac.mkdirs('~/bin', '~/.secrets', '~/venv', '~/tmp', '~/projects')
     mac.link('~/Dropbox', '~/d')
-    mac.unset_hidden_flag('/Volumes', '~/Library')
+    mac.unset_hidden_flag('~/Library')
+    # mac.unset_hidden_flag('/Volumes')
 
     mac.link('~/Dropbox/config/dotfiles/bashrc.sh', '~/.bashrc')
     mac.link('~/Dropbox/config/dotfiles/bash_profile.sh', '~/.bash_profile')
@@ -38,7 +39,7 @@ with AutoMac() as mac:
     mac.link('~/Dropbox/config/dotfiles/curlrc.txt', '~/.curlrc')
     mac.link('~/Dropbox/config/dotfiles/inputrc.txt', '~/.inputrc')
     mac.link('~/Library/Preferences', '~/prefs')
-    mac.link('~/Library/Application Support', '~/appsupport')
+    mac.link('~/Library/Application Support', '~/appsup')
 
     mac.link('~/Dropbox/config/sublime/User', '~/Library/Application Support/Sublime Text/Packages/User')
     # MANUAL STEP: Start Sublime; install package control; packages will be installed automatically
@@ -82,9 +83,10 @@ with AutoMac() as mac:
     # mac.finder_sort_folders_atop(True)
     # mac.finder_path_in_title(True)
 
-    mac.locale_region('en_US')
+    mac.locale_region('en_US', 'EUR')
     mac.locale_preferred_languages('en-US', 'ru-RU')
     mac.locale_temperature_celsius()
+    # mac.locale_temperature_fahrenheit()
     mac.locale_metric()
     mac.locale_date_format_1970_01_31_dashed()
     mac.locale_first_day_monday()

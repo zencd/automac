@@ -105,7 +105,7 @@ class Notifications:
         """
 
         def change_existing_ncpref_record():
-            for i, app in enumerate(apps or []):
+            for i, app in enumerate(apps):
                 if app.get('bundle-id') == bundle_id:
                     old_flags = app.get('flags')  # type: int
                     if old_flags is not None:
@@ -114,7 +114,8 @@ class Notifications:
                         else:
                             new_flags = old_flags & ~FLAG_NOTIFICATIONS_ENABLED  # unset flag
                         if new_flags == old_flags:
-                            logging.debug(f'Flags already set for {bundle_id}')
+                            # logging.debug(f'Flags already set for {bundle_id}')
+                            pass
                         else:
                             # PlistBuddy requires a file path, not just domain
                             buddy_cmd = f'Set :apps:{i}:flags {new_flags}'
@@ -134,7 +135,7 @@ class Notifications:
         assert os.path.exists(plist_file)
         rc, cur_xml_text = self.app.exec_and_capture(['defaults', 'export', plist_file, '-'])
         xml = plistlib.loads(cur_xml_text.encode('utf-8'))
-        apps = xml.get('apps')
+        apps = xml.get('apps') or []
         app_record_found = change_existing_ncpref_record()
         if not app_record_found:
             if app_path:
@@ -634,7 +635,7 @@ class AutoMac:
         else:
             raise Exception('should not happen')
         if log:
-            print(f'Exec: {cmd_str}')
+            logging.info(f'Exec: {cmd_str}')
         p = subprocess.Popen(cmd_list, stdout=stdout, stderr=stderr)
         stdout, stderr = p.communicate()
         if check and p.returncode != 0:
@@ -649,7 +650,7 @@ class AutoMac:
             cmd = shlex.split(cmd)
         cmd_list = ['sudo', '-S', '--'] + cmd
         cmd_str = shlex.join(cmd_list)
-        print(f'Exec: {cmd_str}')
+        logging.info(f'Exec: {cmd_str}')
         p = subprocess.Popen(cmd_list, stdout=subprocess.PIPE)
         stdout, stderr = p.communicate()
         if p.returncode != 0 and check:
@@ -665,11 +666,11 @@ class AutoMac:
 
     def abort(self, msg):
         self.success = False
-        print(f'ABORT: {msg}')
+        logging.error(f'ABORT: {msg}')
         sys.exit(1)
 
     def warn(self, msg):
-        print(f'WARNING: {msg}')
+        logging.warning(f'WARNING: {msg}')
 
     def is_app_running(self, app_base_name):
         """
@@ -685,7 +686,7 @@ class AutoMac:
     def run_app(self, app: str):
         """
         Make sure the given app is running.
-        :param app like 'TopNotch' or '/Applications/TopNotch.app'
+        :param app: like 'TopNotch' or '/Applications/TopNotch.app'
         """
         base_name = re.sub(r'.*/', '', app)
         base_name = re.sub(r'\.app$', '', base_name)
@@ -813,12 +814,15 @@ class AutoMac:
                             'NetBIOSName',
                             name, sudo_write=True)
 
-    def locale_region(self, locale):
+    def locale_region(self, locale: str, currency: str=None):
         """
-        Settings / General / Language & Region / Region
-        :param locale: like `en_US` or `en_GB@currency=EUR`
+        GUI: Settings / General / Language & Region / Region.
+        Ok for macos 14.
+        :param locale: like 'en_US', 'en_GB'
+        :param currency: like 'EUR', optional
         """
-        self.defaults.write('NSGlobalDomain', 'AppleLocale', locale)
+        locale_full = f'{locale}@currency={currency}' if currency else locale
+        self.defaults.write('NSGlobalDomain', 'AppleLocale', locale_full)
 
     def locale_region_en_us(self):
         """
@@ -829,10 +833,10 @@ class AutoMac:
     def locale_preferred_languages(self, *langs: str):
         """
         Settings / General / Language & Region / Preferred languages
-        defaults write NSGlobalDomain AppleLanguages -array "en-US" "ru"
-        :param langs:
+        :param langs: like 'en-US', 'en' or 'ru'
         :return:
         """
+        # defaults write NSGlobalDomain AppleLanguages -array "en-US" "ru"
         assert langs
         self.defaults.write_object('NSGlobalDomain', 'AppleLanguages', list(langs))
 
@@ -842,6 +846,14 @@ class AutoMac:
         :return:
         """
         self.defaults.write('NSGlobalDomain', 'AppleTemperatureUnit', 'Celsius')
+
+    def locale_temperature_fahrenheit(self):
+        """
+        Settings / General / Language & Region / Temperature
+        :return:
+        """
+        # todo better delete the key, as it does macos (although 'Fahrenheit' works at 14)
+        self.defaults.write('NSGlobalDomain', 'AppleTemperatureUnit', 'Fahrenheit')
 
     def locale_metric(self):
         """
@@ -1007,7 +1019,7 @@ class AutoMac:
     def keyboard_languages(self, *langs: InputLang, keep_non_keyboard_methods=True):
         """
         Logout required.
-        :param keep_non_keyboard_methods todo impl
+        :param keep_non_keyboard_methods: todo impl
         """
         domain = 'com.apple.HIToolbox'
         key = 'AppleEnabledInputSources'
@@ -1143,7 +1155,7 @@ class AutoMac:
     def screen_lock_off(self, password: str = None):
         """
         Default screen lock is 300 sec, macos 14.7.
-        :param password user will be prompted for password if missing
+        :param password: user will be prompted for password if missing
         """
         # XXX sysadminctl prints current status to stderr bsr
         # XXX password '-' means that user will be asked for it in prompt
@@ -1165,7 +1177,7 @@ class AutoMac:
     def login_items_add(self, app_path: str):
         """
         Make an app running at startup.
-        :param app_path an absolute path like `/Applications/TopNotch.app`
+        :param app_path: an absolute path like `/Applications/TopNotch.app`
         """
         assert os.path.isabs(app_path), app_path
         assert os.path.exists(app_path), app_path
@@ -1189,7 +1201,7 @@ class AutoMac:
     def _login_items_add_impl(self, app_path: str):
         """
         Add a new login item.
-        :param app_path full path to an app, like '/Applications/TopNotch.app'
+        :param app_path: full path to an app, like '/Applications/TopNotch.app'
         """
         # not sure what param `hidden` means
         # subsequent addition has no effect, 14.7
