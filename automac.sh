@@ -23,9 +23,17 @@ function ensure_cli_tools_installed() {
   fi
 }
 
+if [ $# = 0 ]; then
+  echo "Apply an automac config to macOS"
+  echo "Usage: $0 <config-file.py>"
+  exit 1
+fi
+
+venv=automac-venv
 conf_py=$1
 ensure_cli_tools_installed
-if ! (pip3 list | grep -w automac >/dev/null); then
-  (set -x; pip3 install --no-cache-dir 'https://github.com/zencd/automac/archive/v1.zip')
+[ -d automac-venv ] || (set -x; python3 -m venv $venv)
+if ! $venv/bin/python3 -c 'import automac' 2>/dev/null; then
+  (set -x; $venv/bin/python3 -m pip install --no-cache-dir 'https://github.com/zencd/automac/archive/v1.zip')
 fi
-(set -x; python3 "$conf_py")
+(set -x; $venv/bin/python3 "$conf_py")
