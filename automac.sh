@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Apply an automac config to macOS.
+# Usable on a freshly installed OS mainly.
+# NB some pythons, like homebrew's one, doesn't allow installing a package into the main python, so using a venv here
+
 function ensure_cli_tools_installed() {
   # install xcode cli tools via terminal
   # try the gui installer if failed
