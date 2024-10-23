@@ -865,12 +865,89 @@ class AutoMac:
 
     def locale_date_format_1970_01_31_dashed(self):
         """
-        Change date format to 1970-01-01.
-        Settings / General / Language & Region / Date format
-        defaults write NSGlobalDomain AppleICUDateFormatStrings -dict 1 'y-MM-dd'
-        :return:
+        Change date format to 1970-01-31.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
         """
-        value = {'1': 'y.MM.dd'}
+        self.__locale_date_format_impl('y-MM-dd')
+
+    def locale_date_format_1970_01_31_dotted(self):
+        """
+        Change date format to 1970.01.31.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl('y.MM.dd')
+
+    def locale_date_format_1970_1_31_slashed(self):
+        """
+        Change date format to 1970/1/31.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl("y/M/d")
+
+    def locale_date_format_31_01_1970_dashed(self):
+        """
+        Change date format to 31-01-1970.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl("dd-MM-y")
+
+    def locale_date_format_31_01_1970_dotted(self):
+        """
+        Change date format to 31.01.1970.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl("dd.MM.y")
+
+    def locale_date_format_31_01_1970_slashed(self):
+        """
+        Change date format to 31/01/1970.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl("dd/MM/y")
+
+    def locale_date_format_31_1_70_slashed(self):
+        """
+        Change date format to 31/1/70.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.__locale_date_format_impl("d/M/yy")
+
+    def locale_date_format_1_31_70_slashed(self):
+        """
+        Change date format to 1/31/70.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        # todo macos deletes AppleICUDateFormatStrings in this case; better mimic this
+        self.__locale_date_format_impl("M/d/yy")
+
+    def locale_date_format_usa(self):
+        """
+        Change date format to 1/31/70.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.locale_date_format_1_31_70_slashed()
+
+    def locale_date_format_iso(self):
+        """
+        Change date format to 1970-01-31.
+        GUI: Settings / General / Language & Region / Date format.
+        Effect immediate but System Settings must be restarted to reload config.
+        """
+        self.locale_date_format_1970_01_31_dashed()
+
+    def __locale_date_format_impl(self, fmt: str):
+        # example:
+        # defaults write NSGlobalDomain AppleICUDateFormatStrings -dict 1 'y-MM-dd'
+        value = {'1': fmt}
         self.defaults.write_object('NSGlobalDomain', 'AppleICUDateFormatStrings', value)
 
     def locale_first_day_monday(self):
