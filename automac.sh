@@ -33,11 +33,12 @@ if [ $# = 0 ]; then
   exit 1
 fi
 
+distr_url=https://github.com/zencd/automac/archive/v1.zip
 venv=automac-venv
 conf_py=$1
 ensure_cli_tools_installed
 [ -d automac-venv ] || (set -x; python3 -m venv $venv)
 if ! $venv/bin/python3 -c 'import automac' 2>/dev/null; then
-  (set -x; $venv/bin/python3 -m pip install --no-cache-dir 'https://github.com/zencd/automac/archive/v1.zip')
+  (set -x; $venv/bin/python3 -m pip install --no-cache-dir "$distr_url")
 fi
 (set -x; $venv/bin/python3 "$conf_py")
