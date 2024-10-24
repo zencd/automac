@@ -14,3 +14,5 @@
 /sudo*.py
 /tmp*
 __pycache__
+/automac-from-scratch.sh
+/automac.egg-info
