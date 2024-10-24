@@ -46,3 +46,9 @@ https://github.com/tech-otaku/menu-bar-clock
 
 - https://github.com/carlashley/tccprofile
 - https://github.com/jslegendre/tccplus
+
+# xcode cli tools version compatibility
+
+- macos 13.6 - 14.3
+- macos 14.7 - 14.3, 15.3
+- macos 15.0 - 16.0
