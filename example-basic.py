@@ -123,7 +123,8 @@ with AutoMac() as mac:
      .disable_bundle_id('com.apple.Maps')
      .disable_bundle_id('com.apple.voicebanking.usernotifications'))
 
-    text_files = 'bash bat cfg css groovy gradle java js json kt log m md nfo php plist properties ps1 py rb reg sh sublime-syntax todo treetop txt xml yaml yml csv srt vtt'.split()
+    # todo `plist` - WARNING Failed reassigning `plist` from `com.apple.dt.Xcode` to `com.sublimetext.4` with role `editor`. Probably you want a stronger role: `editor` or `all`
+    text_files = 'bash bat cfg css groovy gradle java js json kt log m md nfo php properties ps1 py rb reg sh sublime-syntax todo treetop txt xml yaml yml csv srt vtt'.split()
     video_files = 'avi divx flv m4v mkv mov mp4 mpg vob webm wmv'.split()
     audio_files = 'aac aif aiff ape fla flac m4a mp3 ogg wav wma'.split()
     mac.assoc_file_extensions_editor('Sublime Text', text_files)

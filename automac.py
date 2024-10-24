@@ -3,58 +3,29 @@ import json
 import logging
 import os
 import platform
-import plistlib
 import re
 import shlex
-import stat
 import subprocess
 import sys
 import tempfile
-import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Union, Optional
-from xml.etree.ElementTree import Element
+from typing import Union
+
+import util
+from features.appcleaner import AppCleaner
+from features.brew import BrewManager
+from features.defaults import Defaults
+from features.fileassoc import FileAssoc
+from features.files import Files
+from features.iterm2 import Iterm2
+from features.notifications import Notifications
+from features.scutil import Scutil
+from features.system import System
 
 debug_level = logging.DEBUG
 
 
 # debug_level = logging.INFO
-
-def str_to_int_or_zero(s):
-    try:
-        return int(s)
-    except ValueError:
-        return 0
-
-
-def get_login():
-    # XXX os.getlogin() returns `root` under PyCharm; using getpass instead
-    return getpass.getuser()
-
-
-def get_element(list_: list, index: int, def_val=None):
-    if list_ is None:
-        return def_val
-    return list_[index] if 0 <= index < len(list_) else def_val
-
-
-def read_file_lines(path):
-    with open(path, 'r') as fd:
-        lines = [line.strip() for line in fd]
-    return lines
-
-
-def drop_nones(list_: list):
-    return list(filter(lambda x: x is not None, list_))
-
-
-def app_name_to_base_name_without_ext(s: str):
-    """
-    Converts: `/Applications/TopNotch.app` => `TopNotch`
-    """
-    s = os.path.split(s)[1]
-    s = re.sub(r'\.app', '', s)
-    return s
 
 
 class InputLang:
@@ -72,483 +43,6 @@ class InputLangs:
     EN_GB = InputLang(2, 'British')
     EN_ABC = InputLang(252, 'ABC')
     RU_PC = InputLang(19458, 'RussianWin')
-
-
-class Notifications:
-    flags_base = 8396814  # macos 13.7 defaults: notifications off, badges, sounds, banners
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-        self.do_reload_configs = False
-
-    def enable_app(self, app_name):
-        self._enable_app_impl(app_name, True)
-
-    def disable_app(self, app_name):
-        self._enable_app_impl(app_name, False)
-
-    def change_app(self, app_name, enable: bool):
-        self._enable_app_impl(app_name, enable)
-
-    def enable_bundle(self, bundle_id: str, app_path: str = None):
-        self._change_ncpref(bundle_id, app_path, True)
-
-    def disable_bundle_id(self, bundle_id: str, app_path: str = None):
-        self._change_ncpref(bundle_id, app_path, False)
-        return self
-
-    def _change_ncpref(self, bundle_id: str, app_path: str, enable: bool):
-        """
-        Requires restart: NotificationCenter, usernoted.
-        :param bundle_id: like 'com.sublimetext.4'
-        :param app_path: like '/Applications/Sublime Text.app'
-        :return:
-        """
-
-        def change_existing_ncpref_record():
-            for i, app in enumerate(apps):
-                if app.get('bundle-id') == bundle_id:
-                    old_flags = app.get('flags')  # type: int
-                    if old_flags is not None:
-                        if enable:
-                            new_flags = old_flags | FLAG_NOTIFICATIONS_ENABLED  # set flag
-                        else:
-                            new_flags = old_flags & ~FLAG_NOTIFICATIONS_ENABLED  # unset flag
-                        if new_flags == old_flags:
-                            # logging.debug(f'Flags already set for {bundle_id}')
-                            pass
-                        else:
-                            # PlistBuddy requires a file path, not just domain
-                            buddy_cmd = f'Set :apps:{i}:flags {new_flags}'
-                            self.app.exec(['/usr/libexec/PlistBuddy', '-c', buddy_cmd, plist_file])
-                            self.do_reload_configs = True
-                    return True
-            return False
-
-        def add_new_ncpref_record():
-            flags = self.flags_base | FLAG_NOTIFICATIONS_ENABLED if enable else self.flags_base
-            new_entry_xml = f'<dict><key>auth</key><integer>7</integer><key>bundle-id</key><string>{bundle_id}</string><key>content_visibility</key><integer>0</integer><key>flags</key><integer>{flags}</integer><key>grouping</key><integer>0</integer><key>path</key><string>{app_path}</string><key>src</key><array></array></dict>'
-            self.app.exec(['defaults', 'write', 'com.apple.ncprefs.plist', 'apps', '-array-add', new_entry_xml])
-            self.do_reload_configs = True
-
-        FLAG_NOTIFICATIONS_ENABLED = 1 << 25
-        plist_file = f'/Users/{get_login()}/Library/Preferences/com.apple.ncprefs.plist'
-        assert os.path.exists(plist_file)
-        rc, cur_xml_text = self.app.exec_and_capture(['defaults', 'export', plist_file, '-'])
-        xml = plistlib.loads(cur_xml_text.encode('utf-8'))
-        apps = xml.get('apps') or []
-        app_record_found = change_existing_ncpref_record()
-        if not app_record_found:
-            if app_path:
-                add_new_ncpref_record()
-            else:
-                logging.debug(
-                    f'New notification entry cannot be created for bundle id {bundle_id} because app path unknown')
-
-    def _enable_app_impl(self, app_name, enable: bool):
-        def symlink_to_file(path):
-            # convert '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/Current/Helpers/Brave Browser Helper (Alerts).app'
-            # into '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/129.1.70.123/Helpers/Brave Browser Helper (Alerts).app'
-            # because macos uses versioned paths in ncprefs; not sure if it matters
-            return os.path.realpath(path)
-
-        app_path = self.app.find_app_path(app_name)
-        if not app_path:
-            logging.warning(f'''Missing app `{app_name}` - it won't be enabled''')
-            return
-        app_path = symlink_to_file(app_path)
-        assert os.path.exists(app_path), f'Missing path: {app_path}'
-        bundle_id = self.app.get_app_bundle_id(app_path)
-        if bundle_id:
-            self._change_ncpref(bundle_id, app_path, enable)
-
-    def os_to_reload_configs(self):
-        self.app.killall('System Settings', 'NotificationCenter', 'usernoted')
-
-
-class Iterm2:
-    DOMAIN = 'com.googlecode.iterm2'
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def quit_silently(self):
-        """iTerm2: Don't display the annoying prompt when quitting."""
-        self.app.defaults.write(self.DOMAIN, 'PromptOnQuit', False)  # confirm quit iterm2
-        self.app.defaults.write(self.DOMAIN, 'OnlyWhenMoreTabs', False)  # confirm closing multiple sessions
-        return self
-
-    def quit_when_all_windows_closed(self):
-        self.app.defaults.write(self.DOMAIN, 'QuitWhenAllWindowsClosed', True)
-        return self
-
-    def update_disable(self):
-        # todo these settings are the same for a bunch of apps: need to generalize this
-        self.app.defaults.write(self.DOMAIN, 'SUAutomaticallyUpdate', False)
-        self.app.defaults.write(self.DOMAIN, 'SUEnableAutomaticChecks', False)
-        return self
-
-    def analytics_off(self):
-        self.app.defaults.write(self.DOMAIN, 'SUSendProfileInfo', False)
-        return self
-
-
-class AppCleaner:
-    DOMAIN = 'net.freemacsoft.AppCleaner'
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def update_disable(self):
-        self.app.defaults.write(self.DOMAIN, 'SUAutomaticallyUpdate', False)
-        self.app.defaults.write(self.DOMAIN, 'SUEnableAutomaticChecks', False)
-        return self
-
-    def mark_as_launched_before(self):
-        self.app.defaults.write(self.DOMAIN, 'SUHasLaunchedBefore', True)
-        return self
-
-    def analytics_off(self):
-        self.app.defaults.write(self.DOMAIN, 'SUSendProfileInfo', False)
-        return self
-
-
-class FileAssoc:
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def extensions(self, app_name: str, role: str, extensions: list[str]):
-        # todo check duti installed
-        # todo resolve path to duti in runtime
-        assert role in {'none', 'viewer', 'editor', 'all'}
-        extensions = map(str.strip, extensions)
-        extensions = filter(bool, extensions)
-        extensions = list(extensions)
-        bundle_id = self.app.get_app_bundle_id(app_name)
-        for ext in extensions:
-            ext_orig = ext
-            ext = ext[1:] if ext.startswith('.') else ext
-            if '.' in ext or not ext:
-                logging.warning(f'Improper extension `{ext_orig}` - skipping')
-                continue
-            bundle_id_before = self._get_current_bundle_by_ext(ext)
-            if bundle_id != bundle_id_before:
-                # logging.debug(f'Change handler for {ext}: {cur_bundle} -> {bundle_id}')
-                cmd = ['/opt/homebrew/bin/duti', '-s', bundle_id, f'.{ext}', role]
-                self.app.exec(cmd)
-                bundle_id_after = self._get_current_bundle_by_ext(ext)
-                if bundle_id_before == bundle_id_after:
-                    logging.warning(
-                        f'Failed reassigning `{ext}` from `{bundle_id_before}` to `{bundle_id}` with role `{role}`. '
-                        'Probably you want a stronger role: `editor` or `all`')
-
-    def _get_current_bundle_by_ext(self, ext):
-        rc, cur_settings = self.app.exec_and_capture(['/opt/homebrew/bin/duti', '-x', ext], check=False)
-        # Example of `duti -x txt` output:
-        #   TextEdit.app
-        #   /System/Applications/TextEdit.app
-        #   com.apple.TextEdit
-        lines = cur_settings.splitlines()
-        if rc != 0 or len(lines) < 3:
-            return ''
-        return lines[2]  # like 'com.apple.TextEdit'
-
-
-class BrewManager:
-
-    # XXX simple command `brew install xxx` tries to upgrade such package, so not using it
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-        self.installed_packages_ = None  # populated on demand
-
-    @property
-    def installed_packages(self):
-        if self.installed_packages_ is None:
-            self.installed_packages_ = self._list_installed_packages()
-        return self.installed_packages_
-
-    def _list_installed_packages(self):
-        cmd_str = f'{self.brew_exe} list'
-        p = subprocess.run(cmd_str, shell=True, check=False, capture_output=True, encoding='utf-8')
-        assert p.returncode == 0, f'Shell command failed: {cmd_str}'
-        packages = p.stdout.splitlines()
-        packages = [x.strip().lower() for x in packages]
-        return set(packages)
-
-    def install_homebrew(self):
-        if not self._brew_exists():
-            logging.debug('brew not found, installing it')
-            # brew prohibits running it as sudo
-            self.app.exec_temp_file(executor='bash', content=[
-                '''/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'''
-            ])
-
-    def analytics_off(self):
-        # output of `brew analytics` when disabled:
-        #   InfluxDB analytics are disabled.
-        #   Google Analytics were destroyed.
-        _, cur_text = self.app.exec_and_capture([self.brew_exe, 'analytics'])
-        if 'disabled' in cur_text and 'destroyed' in cur_text:
-            pass
-        else:
-            self.app.exec([self.brew_exe, 'analytics', 'off'])
-
-    def install_formulas(self, list_file: str):
-        list_file = self.app._resolve_file(list_file)
-        logging.debug(f'Installing brew formulas from {list_file}')
-        lines = read_file_lines(list_file)
-        lines = list(filter(lambda line: line and ('#' not in line), lines))
-        cnt = 0
-        for package in lines:
-            self.install_formula(package)
-            cnt += 1
-        logging.debug(f'Formulas processed: {cnt}')
-
-    def install_formula(self, package):
-        package_lo = package.lower()
-        if package_lo in self.installed_packages:
-            # print(f'Already installed: {package}')
-            return
-        self.app.exec([self.brew_exe, 'install', package])
-
-    def install_casks(self, list_file: str):
-        list_file = self.app._resolve_file(list_file)
-        logging.debug(f'Installing brew casks from {list_file}')
-        lines = read_file_lines(list_file)
-        lines = list(filter(lambda line: line and ('#' not in line), lines))
-        cnt = 0
-        for package in lines:
-            self.install_cask(package)
-            cnt += 1
-        logging.debug(f'Casks processed: {cnt}')
-
-    def install_cask(self, package):
-        package_lo = package.lower()
-        if package_lo in self.installed_packages:
-            # print(f'Already installed: {package}')
-            return
-        installed_via_brew, existing_macos_apps = self._check_existing_brew_cask(package)
-        if installed_via_brew:
-            logging.debug(f'Already installed via brew: {package}')
-            return
-        if existing_macos_apps:
-            logging.debug(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
-            return
-        # self.setup_manager.exec_string(f'brew install --cask {package}')
-        self.app.exec([self.brew_exe, 'install', '--cask', package])
-
-    def _check_existing_brew_cask(self, package):
-        rc, stdout = self.app.exec_and_capture([self.brew_exe, 'info', package], check=False)
-        installed_via_brew = rc == 0 and 'Not installed' not in stdout
-        existing_macos_apps = self._find_macos_apps(stdout)
-        return installed_via_brew, existing_macos_apps
-
-    def _find_macos_apps(self, package_info_output):
-        apps = []
-        for line in package_info_output.splitlines():
-            m = re.search(r'(.+\.app)', line, re.IGNORECASE)
-            if m:
-                app_file = m.group(1)  # like 'Sublime Text.app'
-                app_file_full = f'/Applications/{app_file}'
-                if os.path.exists(app_file):
-                    apps.append(app_file)
-                elif os.path.exists(app_file_full):
-                    apps.append(app_file_full)
-        return set(apps)
-
-    def _brew_exists(self):
-        return self._resolve_brew_executable() is not None
-
-    @property
-    def brew_exe(self):
-        if path := self._resolve_brew_executable():
-            return path
-        else:
-            self.app.abort('Brew not found')
-
-    def _resolve_brew_executable(self):
-        for path in ['/opt/homebrew/bin/brew', '/usr/local/bin/brew']:
-            if os.path.exists(path):
-                return path
-        return None
-
-
-class Scutil:
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def write_if_needed(self, key: str, value: str):
-        # XXX scutil exits with a non-zero code if setting missing
-        rc, old_value = self.app.exec_and_capture(['scutil', '--get', key], check=False)
-        if rc == 0 and old_value == value:
-            # print(f'Already done: scutil {key} {value}')
-            pass
-        else:
-            self.app.sudo(['scutil', '--set', key, value])
-
-
-class Defaults:
-    """
-    An interface to the `defaults` utility that manages macos plist files.
-    """
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def read(self, domain: str, key: str):
-        cmd = ['defaults', 'read', domain, key]
-        rc, value = self.app.exec_and_capture(cmd, check=False)
-        return value if rc == 0 else ''
-
-    def write(self, domain: str, key: str, value: Union[str, int, bool], current_host=False, sudo_write=False):
-        """
-        Write a value into domain/key if not written yet.
-        :param domain:
-        :param key:
-        :param value:
-        :param current_host:
-        :param sudo_write:
-        :return:
-        """
-
-        def norm(val):
-            if isinstance(val, bool):
-                return '1' if val else '0'
-            return str(val)
-
-        def str_value(val):
-            if isinstance(val, bool):
-                return str(val).lower()
-            return str(val)
-
-        assert value is not None
-        type_ = {str: '-string', int: '-int', bool: '-bool'}[type(value)]
-        ch = '-currentHost' if current_host else None
-        cmd = drop_nones(['defaults', ch, 'read', domain, key])
-        rc, old_value = self.app.exec_and_capture(cmd, check=False)
-        if rc == 0 and norm(value) == norm(old_value):
-            # print(f'Already done: {domain} {key} {type_} {new_value}')
-            pass
-        else:
-            cmd = drop_nones(['defaults', ch, 'write', domain, key, type_, str_value(value)])
-            if sudo_write:
-                self.app.sudo(cmd)
-            else:
-                self.app.exec(cmd)
-
-    def write_object(self, domain: str, key: str, new_value: Union[list, dict]):
-        """
-        Write a value into domain/key if not written yet.
-        :param domain:
-        :param key:
-        :param new_value:
-        :return:
-        """
-
-        def dict_to_plist_xml(value: dict):
-            """
-            :param value: like {'1': 'y.MM.dd'}
-            :return: like '<dict><key>1</key><string>y.MM.dd</string></dict>'
-            """
-            xml_str_1 = plistlib.dumps(value).decode('utf-8')
-            root = ET.fromstring(xml_str_1)  # type: Element
-            assert len(root) == 1
-            first_child = root[0]
-            xml_str_2 = ET.tostring(first_child).decode('utf-8')
-            # todo strip \r\n\t only btw tags
-            xml_str_2 = xml_str_2.replace('\r', '').replace('\n', '').replace('\t', '')
-            return xml_str_2
-
-        assert new_value is not None
-        rc, cur_xml_text = self.app.exec_and_capture(['defaults', 'export', domain, '-'])
-        # todo check rc
-        xml = plistlib.loads(cur_xml_text.encode('utf-8'))
-        cur_value = xml.get(key)
-        if cur_value is None or new_value != cur_value:
-            new_value_xml_str = dict_to_plist_xml(new_value)
-            self.app.exec(['defaults', 'write', domain, key, new_value_xml_str])
-
-    def delete_key(self, domain: str, key: str):
-        """
-        Delete a value by the given domain/key if one exists.
-        :param domain:
-        :param key:
-        :return:
-        """
-        cmd = ['defaults', 'read', domain, key]
-        rc, value = self.app.exec_and_capture(cmd, check=False)
-        key_exists = rc == 0
-        if key_exists:
-            self.app.exec(['defaults', 'delete', domain, key])
-
-
-class System:
-
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def current_timezone(self):
-        rc, path = self.app.exec_and_capture(['readlink', '/etc/localtime'])
-        # path is like '/var/db/timezone/zoneinfo/Europe/Moscow'
-        return path.replace('/var/db/timezone/zoneinfo/', '')
-
-
-class Files:
-    def __init__(self, app: 'AutoMac'):
-        self.app = app
-
-    def link(self, master_file: str, alias: str):
-        # print(f'link_forced: {alias} -> {master_file}')
-        master_file = os.path.expanduser(master_file)
-        alias = os.path.expanduser(alias)
-        assert os.path.exists(master_file), f'Missing master_file: {master_file}'
-        if os.path.lexists(alias):
-            if os.path.islink(alias):
-                current_target = os.readlink(alias)
-                if os.path.exists(current_target) and os.path.samefile(master_file, current_target):
-                    # print(f'Alias is fine already: {alias} -> {master_file}')
-                    return
-                else:
-                    self.remove(alias)
-            elif os.path.isdir(alias):
-                self.app.abort(f'Param `alias` cannot be an existing directory: {alias}')
-            else:
-                self.remove(alias)
-        self.mkdir(str(Path(alias).parent))
-        self.app.exec(['ln', '-s', master_file, alias])
-
-    def remove(self, path):
-        print(f'Removing {path}')
-        os.remove(str(path))
-
-    def mkdir(self, path: str):
-        path = os.path.expanduser(path)
-        if not os.path.exists(path):
-            self.app.exec(['mkdir', '-p', path])
-        return path
-
-    def mkdirs(self, *paths):
-        for path in paths:
-            self.mkdir(path)
-
-    def unset_hidden_flag(self, *paths: str):
-        for path in paths:
-            self._unset_hidden_flag_one(path)
-
-    def _unset_hidden_flag_one(self, path: str):
-        path = os.path.expanduser(path)
-        res = os.lstat(path)
-        hidden = (res.st_flags & stat.UF_HIDDEN) != 0  # UF_HIDDEN is macos-specific
-        if hidden:
-            # todo no sudo needed for home folders
-            self.app.sudo(['chflags', 'nohidden', path])
-
-
-def get_os_name():
-    s = platform.system()
-    return {'Darwin': 'macOS'}.get(s) or s
 
 
 class AutoMac:
@@ -577,7 +71,7 @@ class AutoMac:
         self._enter_called = True
         # logging.basicConfig(level=logging.INFO)
         logging.info('AutoMac started')  # todo logged as root x_x
-        logging.info(f'{get_os_name()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
+        logging.info(f'{util.get_os_name()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
         logging.debug(f'os.getlogin(): {os.getlogin()}')
         logging.debug(f'getpass.getuser(): {getpass.getuser()}')
         return self
@@ -752,12 +246,12 @@ class AutoMac:
         """
 
         def current_shell():
-            rc, stdout = self.exec_and_capture(['dscl', '.', '-read', f'/Users/{get_login()}', 'UserShell'],
+            rc, stdout = self.exec_and_capture(['dscl', '.', '-read', f'/Users/{util.get_login()}', 'UserShell'],
                                                check=False)
             # todo warn if rc != 0
             # stdout be like 'UserShell:   /bin/zsh'
             words = stdout.split()
-            return get_element(words, 1)
+            return util.get_element(words, 1)
 
         def is_shell_registered():
             lines = Path(etc_shells).read_text().splitlines()
@@ -774,9 +268,9 @@ class AutoMac:
             ])
         cur_shell = current_shell()
         if not cur_shell:
-            self.warn(f'Failed to determine login shell for user {get_login()}')
+            self.warn(f'Failed to determine login shell for user {util.get_login()}')
         if shell_path != cur_shell:
-            self.exec(['chsh', '-s', shell_path, get_login()])
+            self.exec(['chsh', '-s', shell_path, util.get_login()])
             self.manual_step('New shell session required')
 
     def link(self, master_file: str, alias: str):
@@ -1246,7 +740,7 @@ class AutoMac:
         Return current macos version as a three-int tuple.
         """
         tup = platform.mac_ver()[0].split('.')
-        tup = list(map(str_to_int_or_zero, tup))
+        tup = list(map(util.str_to_int_or_zero, tup))
         while len(tup) < 3:
             tup.append(0)
         return tuple(tup)
@@ -1280,7 +774,7 @@ class AutoMac:
         """
         assert os.path.isabs(app_path), app_path
         assert os.path.exists(app_path), app_path
-        bn = app_name_to_base_name_without_ext(app_path)
+        bn = util.app_name_to_base_name_without_ext(app_path)
         cur_items = self.login_items_list()
         if bn not in cur_items:
             self._login_items_add_impl(app_path)
