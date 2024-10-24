@@ -18,31 +18,13 @@ from features.exec import Exec
 from features.fileassoc import FileAssoc
 from features.files import Files
 from features.iina import Iina
+from features.inputlang import InputLang
 from features.iterm2 import Iterm2
 from features.notifications import Notifications
 from features.scutil import Scutil
 
 debug_level = logging.DEBUG
-
-
 # debug_level = logging.INFO
-
-
-class InputLang:
-
-    def __init__(self, code: int, name: str):
-        self.code = code
-        self.name = name
-
-    def xml_str(self):
-        return f'<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>{self.code}</integer><key>KeyboardLayout Name</key><string>{self.name}</string></dict>'
-
-
-class InputLangs:
-    EN_US = InputLang(0, 'U.S.')
-    EN_GB = InputLang(2, 'British')
-    EN_ABC = InputLang(252, 'ABC')
-    RU_PC = InputLang(19458, 'RussianWin')
 
 
 class AutoMac(AutoMacBase):
@@ -67,11 +49,10 @@ class AutoMac(AutoMacBase):
         self.manual_steps = []
         self.success = True
         self._machine_serial = self._resolve_serial_number()
-        self._enter_called = False  # todo check it's true when a method called
+        self._entered = False  # todo check it's true when a method called
 
     def __enter__(self):
-        self._enter_called = True
-        # logging.basicConfig(level=logging.INFO)
+        self._entered = True
         logging.info('AutoMac started')  # todo logged as root x_x
         logging.info(f'{util.get_os_name()} {platform.mac_ver()[0]} {platform.machine()} {platform.architecture()[0]}')
         logging.debug(f'os.getlogin(): {os.getlogin()}')
@@ -540,9 +521,9 @@ class AutoMac(AutoMacBase):
         domain = 'com.apple.HIToolbox'
         key = 'AppleEnabledInputSources'
         old_value = self.defaults.read(domain, key)
-        any_missing = any(lang for lang in langs if f'= {lang.code};' not in old_value)  # todo poor implementation now
+        any_missing = any(lang for lang in langs if f'= {lang.get_code()};' not in old_value)  # todo poor implementation now
         if any_missing:
-            xmls = [lang.xml_str() for lang in langs]
+            xmls = [lang.to_plist_xml_str() for lang in langs]
             cmd = ['defaults', 'write', domain, key, '-array'] + xmls
             self.exec.exec(cmd)
 
