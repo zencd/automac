@@ -18,7 +18,7 @@ with AutoMac() as mac:
     if not mac.file_exists('~/Dropbox'):
         mac.brew.install_homebrew()
         mac.brew.analytics_off()
-        mac.brew.install_cask('dropbox')
+        cask_full('dropbox', 'Dropbox')
         mac.manual_step('Start Dropbox; sync config folder; start this script again')
         sys.exit(0)
 
@@ -88,7 +88,7 @@ with AutoMac() as mac:
     mac.locale_temperature_celsius()
     # mac.locale_temperature_fahrenheit()
     mac.locale_metric()
-    mac.locale_date_format_1970_01_31_dashed()
+    mac.locale_date_format_iso()
     mac.locale_first_day_monday()
     # mac.locale_time_format_12h()
     mac.locale_time_format_24h()
@@ -133,7 +133,10 @@ with AutoMac() as mac:
     mac.appcleaner.analytics_off()
     mac.appcleaner.mark_as_launched_before()
 
+    mac.iterm2.update_disable()
+    mac.iterm2.analytics_off()
     mac.iterm2.quit_silently()
+    mac.iterm2.quit_when_all_windows_closed()
 
     mac.login_items_add('/Applications/TopNotch.app')
     mac.run_app('TopNotch')

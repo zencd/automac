@@ -172,9 +172,20 @@ class Iterm2:
         self.app = app
 
     def quit_silently(self):
-        # iTerm2: Don’t display the annoying prompt when quitting
-        # defaults write com.googlecode.iterm2 PromptOnQuit -bool false
-        self.app.defaults.write(self.DOMAIN, 'PromptOnQuit', False)
+        """iTerm2: Don't display the annoying prompt when quitting."""
+        self.app.defaults.write(self.DOMAIN, 'PromptOnQuit', False)  # confirm quit iterm2
+        self.app.defaults.write(self.DOMAIN, 'OnlyWhenMoreTabs', False)  # confirm closing multiple sessions
+
+    def quit_when_all_windows_closed(self):
+        self.app.defaults.write(self.DOMAIN, 'QuitWhenAllWindowsClosed', True)
+
+    def update_disable(self):
+        # todo these settings are the same for a bunch of apps: need to generalize this
+        self.app.defaults.write(self.DOMAIN, 'SUAutomaticallyUpdate', False)
+        self.app.defaults.write(self.DOMAIN, 'SUEnableAutomaticChecks', False)
+
+    def analytics_off(self):
+        self.app.defaults.write(self.DOMAIN, 'SUSendProfileInfo', False)
 
 
 class AppCleaner:
@@ -535,7 +546,10 @@ def get_os_name():
 class AutoMac:
 
     def __init__(self):
-        logging.basicConfig(level=debug_level)
+        logging.basicConfig(
+            level=debug_level,
+            format='%(levelname)-5s %(message)s'
+        )
         self._lookup_dirs = []
         self.brew = BrewManager(self)  # type: BrewManager
         self.defaults = Defaults(self)  # type: Defaults
@@ -814,7 +828,7 @@ class AutoMac:
                             'NetBIOSName',
                             name, sudo_write=True)
 
-    def locale_region(self, locale: str, currency: str=None):
+    def locale_region(self, locale: str, currency: str = None):
         """
         GUI: Settings / General / Language & Region / Region.
         Ok for macos 14.
@@ -885,7 +899,7 @@ class AutoMac:
         GUI: Settings / General / Language & Region / Date format.
         Effect immediate but System Settings must be restarted to reload config.
         """
-        self.__locale_date_format_impl("y/M/d")
+        self.__locale_date_format_impl('y/M/d')
 
     def locale_date_format_31_01_1970_dashed(self):
         """
@@ -893,7 +907,7 @@ class AutoMac:
         GUI: Settings / General / Language & Region / Date format.
         Effect immediate but System Settings must be restarted to reload config.
         """
-        self.__locale_date_format_impl("dd-MM-y")
+        self.__locale_date_format_impl('dd-MM-y')
 
     def locale_date_format_31_01_1970_dotted(self):
         """
@@ -901,7 +915,7 @@ class AutoMac:
         GUI: Settings / General / Language & Region / Date format.
         Effect immediate but System Settings must be restarted to reload config.
         """
-        self.__locale_date_format_impl("dd.MM.y")
+        self.__locale_date_format_impl('dd.MM.y')
 
     def locale_date_format_31_01_1970_slashed(self):
         """
@@ -909,7 +923,7 @@ class AutoMac:
         GUI: Settings / General / Language & Region / Date format.
         Effect immediate but System Settings must be restarted to reload config.
         """
-        self.__locale_date_format_impl("dd/MM/y")
+        self.__locale_date_format_impl('dd/MM/y')
 
     def locale_date_format_31_1_70_slashed(self):
         """
@@ -917,7 +931,7 @@ class AutoMac:
         GUI: Settings / General / Language & Region / Date format.
         Effect immediate but System Settings must be restarted to reload config.
         """
-        self.__locale_date_format_impl("d/M/yy")
+        self.__locale_date_format_impl('d/M/yy')
 
     def locale_date_format_1_31_70_slashed(self):
         """
@@ -926,7 +940,7 @@ class AutoMac:
         Effect immediate but System Settings must be restarted to reload config.
         """
         # todo macos deletes AppleICUDateFormatStrings in this case; better mimic this
-        self.__locale_date_format_impl("M/d/yy")
+        self.__locale_date_format_impl('M/d/yy')
 
     def locale_date_format_usa(self):
         """
