@@ -11,6 +11,7 @@ from pathlib import Path
 import util
 from base import AutoMacBase
 from features.appcleaner import AppCleaner
+from features.apps import Apps
 from features.brew import BrewManager
 from features.defaults import Defaults
 from features.exec import Exec
@@ -60,6 +61,7 @@ class AutoMac(AutoMacBase):
         self.system = System(self)  # type: System
         self.fs = Files(self)  # type: Files
         self.notifications = Notifications(self)  # type: Notifications
+        self.apps = Apps(self)
         self.appcleaner = AppCleaner(self)  # type: AppCleaner
         self.iterm2 = Iterm2(self)  # type: Iterm2
         self.manual_steps = []
@@ -142,17 +144,6 @@ class AutoMac(AutoMacBase):
     def warn(self, msg):
         logging.warning(f'WARNING: {msg}')
 
-    def is_app_running(self, app_base_name):
-        """
-        :param app_base_name: like 'Sublime Text'
-        :return: 
-        """
-        # todo pgrep matches not only 'TopNotch' but 'TopNot' too
-        rc = self.exec.exec_interactive(['pgrep', app_base_name], check=False, stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        log=False)
-        return rc == 0
-
     def run_app(self, app: str):
         """
         Make sure the given app is running.
@@ -161,8 +152,8 @@ class AutoMac(AutoMacBase):
         base_name = re.sub(r'.*/', '', app)
         base_name = re.sub(r'\.app$', '', base_name)
         assert '/' not in base_name
-        if not self.is_app_running(base_name):
-            abs_path = self.resolve_app_path(app)
+        if not self.apps.is_app_running(base_name):
+            abs_path = self.apps.resolve_app_path(app)
             self.exec.exec(['open', abs_path])
 
     def user_shell(self, shell_path: str):
@@ -172,7 +163,7 @@ class AutoMac(AutoMacBase):
         :param shell_path: like `/opt/homebrew/bin/bash`
         """
 
-        def current_shell():
+        def get_current_shell():
             rc, stdout = self.exec.exec_and_capture(['dscl', '.', '-read', f'/Users/{util.get_login()}', 'UserShell'],
                                                     check=False)
             # todo warn if rc != 0
@@ -193,7 +184,7 @@ class AutoMac(AutoMacBase):
                 'set -x',
                 f'echo "{shell_path}" | sudo tee -a {etc_shells}',
             ])
-        cur_shell = current_shell()
+        cur_shell = get_current_shell()
         if not cur_shell:
             self.warn(f'Failed to determine login shell for user {util.get_login()}')
         if shell_path != cur_shell:
@@ -605,37 +596,6 @@ class AutoMac(AutoMacBase):
         # todo
         pass
 
-    def resolve_app_path(self, app_name: str):
-        """
-        Resolve the absolute path to a macos app.
-        Fails if path doesn't exist.
-        :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
-        :return: like '/Applications/Sublime Text.app'
-        """
-        app_path = self.find_app_path(app_name)
-        assert app_path, f'No app found by app name {app_name}'
-        assert os.path.exists(app_path), app_path
-        return app_path
-
-    def find_app_path(self, app_name: str):
-        """
-        Find the absolute path to a macos app.
-        :param app_name: like 'Sublime Text' or '/Applications/Sublime Text.app'
-        :return: like '/Applications/Sublime Text.app' or None
-        """
-        # a place with system apps: /System/Library/CoreServices
-        if os.path.isabs(app_name):
-            app_path = app_name
-        else:
-            if not app_name.endswith('.app'):
-                app_name = f'{app_name}.app'
-            app_path = f'/Applications/{app_name}'
-        return app_path if os.path.exists(app_path) else None
-
-    def app_exists(self, app_name: str):
-        path = self.find_app_path(app_name)
-        return bool(path)
-
     def file_exists(self, path: str):
         path = Path(path).expanduser()
         return path.exists()
@@ -649,7 +609,7 @@ class AutoMac(AutoMacBase):
         return bundle_id
 
     def quarantine_remove_app(self, app_name: str):
-        app_path = self.resolve_app_path(app_name)
+        app_path = self.apps.resolve_app_path(app_name)
         xattrs = self._get_xattrs(app_path)
         if 'com.apple.quarantine' in xattrs:
             self.exec.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])

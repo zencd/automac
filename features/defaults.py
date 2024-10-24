@@ -53,9 +53,9 @@ class Defaults:
         else:
             cmd = util.drop_nones(['defaults', ch, 'write', domain, key, type_, str_value(value)])
             if sudo_write:
-                self.app.sudo(cmd)
+                self.app.exec.sudo(cmd)
             else:
-                self.app.exec(cmd)
+                self.app.exec.exec(cmd)
 
     def write_object(self, domain: str, key: str, new_value: Union[list, dict]):
         """
@@ -87,7 +87,7 @@ class Defaults:
         cur_value = xml.get(key)
         if cur_value is None or new_value != cur_value:
             new_value_xml_str = dict_to_plist_xml(new_value)
-            self.app.exec(['defaults', 'write', domain, key, new_value_xml_str])
+            self.app.exec.exec(['defaults', 'write', domain, key, new_value_xml_str])
 
     def delete_key(self, domain: str, key: str):
         """
@@ -100,4 +100,4 @@ class Defaults:
         rc, value = self.app.exec.exec_and_capture(cmd, check=False)
         key_exists = rc == 0
         if key_exists:
-            self.app.exec(['defaults', 'delete', domain, key])
+            self.app.exec.exec(['defaults', 'delete', domain, key])

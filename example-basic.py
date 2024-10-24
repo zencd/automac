@@ -5,7 +5,7 @@ from automac import AutoMac, InputLangs
 
 
 def cask_full(cask, app, enable_notifications=True):
-    if not mac.app_exists(app):
+    if not mac.apps.app_exists(app):
         mac.brew.install_cask(cask)
     mac.quarantine_remove_app(app)
     mac.notifications.change_app(app, enable_notifications)

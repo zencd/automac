@@ -46,7 +46,7 @@ class BrewManager:
         if 'disabled' in cur_text and 'destroyed' in cur_text:
             pass
         else:
-            self.app.exec([self.brew_exe, 'analytics', 'off'])
+            self.app.exec.exec([self.brew_exe, 'analytics', 'off'])
 
     def install_formulas(self, list_file: str):
         list_file = self.app.resolve_file(list_file)
@@ -64,7 +64,7 @@ class BrewManager:
         if package_lo in self.installed_packages:
             # print(f'Already installed: {package}')
             return
-        self.app.exec([self.brew_exe, 'install', package])
+        self.app.exec.exec([self.brew_exe, 'install', package])
 
     def install_casks(self, list_file: str):
         list_file = self.app.resolve_file(list_file)
@@ -90,7 +90,7 @@ class BrewManager:
             logging.debug(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
             return
         # self.setup_manager.exec_string(f'brew install --cask {package}')
-        self.app.exec([self.brew_exe, 'install', '--cask', package])
+        self.app.exec.exec([self.brew_exe, 'install', '--cask', package])
 
     def _check_existing_brew_cask(self, package):
         rc, stdout = self.app.exec.exec_and_capture([self.brew_exe, 'info', package], check=False)

@@ -2,7 +2,9 @@ import logging
 
 
 class FileAssoc:
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
 
     def extensions(self, app_name: str, role: str, extensions: list[str]):
@@ -23,7 +25,7 @@ class FileAssoc:
             if bundle_id != bundle_id_before:
                 # logging.debug(f'Change handler for {ext}: {cur_bundle} -> {bundle_id}')
                 cmd = ['/opt/homebrew/bin/duti', '-s', bundle_id, f'.{ext}', role]
-                self.app.exec(cmd)
+                self.app.exec.exec(cmd)
                 bundle_id_after = self._get_current_bundle_by_ext(ext)
                 if bundle_id_before == bundle_id_after:
                     logging.warning(
@@ -31,7 +33,7 @@ class FileAssoc:
                         'Probably you want a stronger role: `editor` or `all`')
 
     def _get_current_bundle_by_ext(self, ext):
-        rc, cur_settings = self.app.exec_and_capture(['/opt/homebrew/bin/duti', '-x', ext], check=False)
+        rc, cur_settings = self.app.exec.exec_and_capture(['/opt/homebrew/bin/duti', '-x', ext], check=False)
         # Example of `duti -x txt` output:
         #   TextEdit.app
         #   /System/Applications/TextEdit.app

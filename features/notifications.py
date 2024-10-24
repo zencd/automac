@@ -8,7 +8,9 @@ import util
 class Notifications:
     flags_base = 8396814  # macos 13.7 defaults: notifications off, badges, sounds, banners
 
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
         self.do_reload_configs = False
 
@@ -51,7 +53,7 @@ class Notifications:
                         else:
                             # PlistBuddy requires a file path, not just domain
                             buddy_cmd = f'Set :apps:{i}:flags {new_flags}'
-                            self.app.exec(['/usr/libexec/PlistBuddy', '-c', buddy_cmd, plist_file])
+                            self.app.exec.exec(['/usr/libexec/PlistBuddy', '-c', buddy_cmd, plist_file])
                             self.do_reload_configs = True
                     return True
             return False
@@ -59,13 +61,13 @@ class Notifications:
         def add_new_ncpref_record():
             flags = self.flags_base | FLAG_NOTIFICATIONS_ENABLED if enable else self.flags_base
             new_entry_xml = f'<dict><key>auth</key><integer>7</integer><key>bundle-id</key><string>{bundle_id}</string><key>content_visibility</key><integer>0</integer><key>flags</key><integer>{flags}</integer><key>grouping</key><integer>0</integer><key>path</key><string>{app_path}</string><key>src</key><array></array></dict>'
-            self.app.exec(['defaults', 'write', 'com.apple.ncprefs.plist', 'apps', '-array-add', new_entry_xml])
+            self.app.exec.exec(['defaults', 'write', 'com.apple.ncprefs.plist', 'apps', '-array-add', new_entry_xml])
             self.do_reload_configs = True
 
         FLAG_NOTIFICATIONS_ENABLED = 1 << 25
         plist_file = f'/Users/{util.get_login()}/Library/Preferences/com.apple.ncprefs.plist'
         assert os.path.exists(plist_file)
-        rc, cur_xml_text = self.app.exec_and_capture(['defaults', 'export', plist_file, '-'])
+        rc, cur_xml_text = self.app.exec.exec_and_capture(['defaults', 'export', plist_file, '-'])
         xml = plistlib.loads(cur_xml_text.encode('utf-8'))
         apps = xml.get('apps') or []
         app_record_found = change_existing_ncpref_record()
@@ -83,7 +85,7 @@ class Notifications:
             # because macos uses versioned paths in ncprefs; not sure if it matters
             return os.path.realpath(path)
 
-        app_path = self.app.find_app_path(app_name)
+        app_path = self.app.apps.find_app_path(app_name)
         if not app_path:
             logging.warning(f'''Missing app `{app_name}` - it won't be enabled''')
             return

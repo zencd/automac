@@ -1,7 +1,9 @@
 class Iterm2:
     DOMAIN = 'com.googlecode.iterm2'
 
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
 
     def quit_silently(self):

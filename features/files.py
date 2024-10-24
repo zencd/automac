@@ -4,7 +4,9 @@ from pathlib import Path
 
 
 class Files:
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
 
     def link(self, master_file: str, alias: str):
@@ -25,7 +27,7 @@ class Files:
             else:
                 self.remove(alias)
         self.mkdir(str(Path(alias).parent))
-        self.app.exec(['ln', '-s', master_file, alias])
+        self.app.exec.exec(['ln', '-s', master_file, alias])
 
     def remove(self, path):
         print(f'Removing {path}')
@@ -34,7 +36,7 @@ class Files:
     def mkdir(self, path: str):
         path = os.path.expanduser(path)
         if not os.path.exists(path):
-            self.app.exec(['mkdir', '-p', path])
+            self.app.exec.exec(['mkdir', '-p', path])
         return path
 
     def mkdirs(self, *paths):
@@ -51,4 +53,4 @@ class Files:
         hidden = (res.st_flags & stat.UF_HIDDEN) != 0  # UF_HIDDEN is macos-specific
         if hidden:
             # todo no sudo needed for home folders
-            self.app.sudo(['chflags', 'nohidden', path])
+            self.app.exec.sudo(['chflags', 'nohidden', path])
