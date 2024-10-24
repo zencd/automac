@@ -21,7 +21,6 @@ from features.iina import Iina
 from features.iterm2 import Iterm2
 from features.notifications import Notifications
 from features.scutil import Scutil
-from features.system import System
 
 debug_level = logging.DEBUG
 
@@ -59,7 +58,6 @@ class AutoMac(AutoMacBase):
         self.defaults = Defaults(self)  # type: Defaults
         self.scutil = Scutil(self)  # type: Scutil
         self.assoc = FileAssoc(self)  # type: FileAssoc
-        self.system = System(self)  # type: System
         self.fs = Files(self)  # type: Files
         self.notifications = Notifications(self)  # type: Notifications
         self.apps = Apps(self)
@@ -216,11 +214,16 @@ class AutoMac(AutoMacBase):
     def timezone(self, tz_name):
         # todo add function to list available tz
         # immediate effect
-        if tz_name == self.system.current_timezone():
+        if tz_name == self.get_current_timezone():
             pass
         else:
             # todo hide stderr
             self.exec.sudo(['systemsetup', '-settimezone', tz_name])
+
+    def get_current_timezone(self):
+        rc, path = self.exec.exec_and_capture(['readlink', '/etc/localtime'])
+        # var `path` be like '/var/db/timezone/zoneinfo/Europe/Moscow'
+        return path.replace('/var/db/timezone/zoneinfo/', '')
 
     def all_computer_names(self, name):
         """
