@@ -17,6 +17,7 @@ from features.defaults import Defaults
 from features.exec import Exec
 from features.fileassoc import FileAssoc
 from features.files import Files
+from features.iina import Iina
 from features.iterm2 import Iterm2
 from features.notifications import Notifications
 from features.scutil import Scutil
@@ -64,6 +65,7 @@ class AutoMac(AutoMacBase):
         self.apps = Apps(self)
         self.appcleaner = AppCleaner(self)  # type: AppCleaner
         self.iterm2 = Iterm2(self)  # type: Iterm2
+        self.iina = Iina(self)  # type: Iina
         self.manual_steps = []
         self.success = True
         self._machine_serial = self._resolve_serial_number()
@@ -609,12 +611,9 @@ class AutoMac(AutoMacBase):
         return bundle_id
 
     def quarantine_remove_app(self, app_name: str):
-        app_path = self.apps.resolve_app_path(app_name)
-        xattrs = self._get_xattrs(app_path)
-        if 'com.apple.quarantine' in xattrs:
-            self.exec.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
+        self.apps.remove_app_from_quarantine(app_name)
 
-    def _get_xattrs(self, path: str):
+    def get_xattrs(self, path: str):
         assert os.path.exists(path)
         rc, stdout = self.exec.exec_and_capture(['xattr', path])
         return stdout.splitlines()

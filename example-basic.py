@@ -142,5 +142,9 @@ with AutoMac() as mac:
      .quit_silently()
      .quit_when_all_windows_closed())
 
+    (mac.iina
+     .quit_when_all_windows_closed()
+     .single_window())
+
     mac.login_items_add('/Applications/TopNotch.app')
     mac.run_app('TopNotch')

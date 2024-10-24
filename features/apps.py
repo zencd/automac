@@ -49,3 +49,9 @@ class Apps:
     def app_exists(self, app_name: str):
         path = self.find_app_path(app_name)
         return bool(path)
+
+    def remove_app_from_quarantine(self, app_name: str):
+        app_path = self.app.apps.resolve_app_path(app_name)
+        xattrs = self.app.get_xattrs(app_path)
+        if 'com.apple.quarantine' in xattrs:
+            self.app.exec.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
