@@ -5,8 +5,6 @@ import tempfile
 from pathlib import Path
 from typing import Union
 
-from base import AutoMacBase
-
 
 class Exec:
 

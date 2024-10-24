@@ -12,7 +12,7 @@ import util
 from base import AutoMacBase
 from features.appcleaner import AppCleaner
 from features.apps import Apps
-from features.brew import BrewManager
+from features.brew import Homebrew
 from features.defaults import Defaults
 from features.exec import Exec
 from features.fileassoc import FileAssoc
@@ -54,7 +54,7 @@ class AutoMac(AutoMacBase):
         )
         self._lookup_dirs = []
         self.exec = Exec(self)
-        self.brew = BrewManager(self)  # type: BrewManager
+        self.brew = Homebrew(self)  # type: Homebrew
         self.defaults = Defaults(self)  # type: Defaults
         self.scutil = Scutil(self)  # type: Scutil
         self.assoc = FileAssoc(self)  # type: FileAssoc

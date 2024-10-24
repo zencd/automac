@@ -6,7 +6,7 @@ import subprocess
 import util
 
 
-class BrewManager:
+class Homebrew:
 
     # XXX simple command `brew install xxx` tries to upgrade such package, so not using it
 
@@ -112,16 +112,16 @@ class BrewManager:
         return set(apps)
 
     def _brew_exists(self):
-        return self._resolve_brew_executable() is not None
+        return self._find_brew_executable() is not None
 
     @property
     def brew_exe(self):
-        if path := self._resolve_brew_executable():
+        if path := self._find_brew_executable():
             return path
         else:
             self.app.abort('Brew not found')
 
-    def _resolve_brew_executable(self):
+    def _find_brew_executable(self):
         for path in ['/opt/homebrew/bin/brew', '/usr/local/bin/brew']:
             if os.path.exists(path):
                 return path
