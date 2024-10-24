@@ -11,12 +11,14 @@ class Defaults:
     An interface to the `defaults` utility that manages macos plist files.
     """
 
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
 
     def read(self, domain: str, key: str):
         cmd = ['defaults', 'read', domain, key]
-        rc, value = self.app.exec_and_capture(cmd, check=False)
+        rc, value = self.app.exec.exec_and_capture(cmd, check=False)
         return value if rc == 0 else ''
 
     def write(self, domain: str, key: str, value: Union[str, int, bool], current_host=False, sudo_write=False):
@@ -44,7 +46,7 @@ class Defaults:
         type_ = {str: '-string', int: '-int', bool: '-bool'}[type(value)]
         ch = '-currentHost' if current_host else None
         cmd = util.drop_nones(['defaults', ch, 'read', domain, key])
-        rc, old_value = self.app.exec_and_capture(cmd, check=False)
+        rc, old_value = self.app.exec.exec_and_capture(cmd, check=False)
         if rc == 0 and norm(value) == norm(old_value):
             # print(f'Already done: {domain} {key} {type_} {new_value}')
             pass
@@ -79,7 +81,7 @@ class Defaults:
             return xml_str_2
 
         assert new_value is not None
-        rc, cur_xml_text = self.app.exec_and_capture(['defaults', 'export', domain, '-'])
+        rc, cur_xml_text = self.app.exec.exec_and_capture(['defaults', 'export', domain, '-'])
         # todo check rc
         xml = plistlib.loads(cur_xml_text.encode('utf-8'))
         cur_value = xml.get(key)
@@ -95,7 +97,7 @@ class Defaults:
         :return:
         """
         cmd = ['defaults', 'read', domain, key]
-        rc, value = self.app.exec_and_capture(cmd, check=False)
+        rc, value = self.app.exec.exec_and_capture(cmd, check=False)
         key_exists = rc == 0
         if key_exists:
             self.app.exec(['defaults', 'delete', domain, key])

@@ -10,7 +10,9 @@ class BrewManager:
 
     # XXX simple command `brew install xxx` tries to upgrade such package, so not using it
 
-    def __init__(self, app: 'AutoMac'):
+    def __init__(self, app):
+        from automac import AutoMac
+        app: AutoMac = app
         self.app = app
         self.installed_packages_ = None  # populated on demand
 
@@ -32,7 +34,7 @@ class BrewManager:
         if not self._brew_exists():
             logging.debug('brew not found, installing it')
             # brew prohibits running it as sudo
-            self.app.exec_temp_file(executor='bash', content=[
+            self.app.exec.exec_temp_file(executor='bash', content=[
                 '''/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'''
             ])
 
@@ -40,14 +42,14 @@ class BrewManager:
         # output of `brew analytics` when disabled:
         #   InfluxDB analytics are disabled.
         #   Google Analytics were destroyed.
-        _, cur_text = self.app.exec_and_capture([self.brew_exe, 'analytics'])
+        _, cur_text = self.app.exec.exec_and_capture([self.brew_exe, 'analytics'])
         if 'disabled' in cur_text and 'destroyed' in cur_text:
             pass
         else:
             self.app.exec([self.brew_exe, 'analytics', 'off'])
 
     def install_formulas(self, list_file: str):
-        list_file = self.app._resolve_file(list_file)
+        list_file = self.app.resolve_file(list_file)
         logging.debug(f'Installing brew formulas from {list_file}')
         lines = util.read_file_lines(list_file)
         lines = list(filter(lambda line: line and ('#' not in line), lines))
@@ -65,7 +67,7 @@ class BrewManager:
         self.app.exec([self.brew_exe, 'install', package])
 
     def install_casks(self, list_file: str):
-        list_file = self.app._resolve_file(list_file)
+        list_file = self.app.resolve_file(list_file)
         logging.debug(f'Installing brew casks from {list_file}')
         lines = util.read_file_lines(list_file)
         lines = list(filter(lambda line: line and ('#' not in line), lines))
@@ -91,7 +93,7 @@ class BrewManager:
         self.app.exec([self.brew_exe, 'install', '--cask', package])
 
     def _check_existing_brew_cask(self, package):
-        rc, stdout = self.app.exec_and_capture([self.brew_exe, 'info', package], check=False)
+        rc, stdout = self.app.exec.exec_and_capture([self.brew_exe, 'info', package], check=False)
         installed_via_brew = rc == 0 and 'Not installed' not in stdout
         existing_macos_apps = self._find_macos_apps(stdout)
         return installed_via_brew, existing_macos_apps

@@ -4,17 +4,16 @@ import logging
 import os
 import platform
 import re
-import shlex
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Union
 
 import util
+from base import AutoMacBase
 from features.appcleaner import AppCleaner
 from features.brew import BrewManager
 from features.defaults import Defaults
+from features.exec import Exec
 from features.fileassoc import FileAssoc
 from features.files import Files
 from features.iterm2 import Iterm2
@@ -45,7 +44,7 @@ class InputLangs:
     RU_PC = InputLang(19458, 'RussianWin')
 
 
-class AutoMac:
+class AutoMac(AutoMacBase):
 
     def __init__(self):
         logging.basicConfig(
@@ -53,6 +52,7 @@ class AutoMac:
             format='%(levelname)-5s %(message)s'
         )
         self._lookup_dirs = []
+        self.exec = Exec(self)
         self.brew = BrewManager(self)  # type: BrewManager
         self.defaults = Defaults(self)  # type: Defaults
         self.scutil = Scutil(self)  # type: Scutil
@@ -100,7 +100,7 @@ class AutoMac:
         return path
 
     def _resolve_serial_number(self):
-        rc, stdout = self.exec_and_capture(['system_profiler', 'SPHardwareDataType', '-json'])
+        rc, stdout = self.exec.exec_and_capture(['system_profiler', 'SPHardwareDataType', '-json'])
         root = json.loads(stdout)
         return root['SPHardwareDataType'][0]['serial_number']  # todo safe read
 
@@ -109,11 +109,11 @@ class AutoMac:
 
     def is_virtual_machine(self):
         # todo seems only UTM-compatible
-        rc = self.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"],
-                                 check=False, log=False)
+        rc = self.exec.exec_temp_file(["system_profiler SPHardwareDataType -json | grep -i virtual > /dev/null"],
+                                      check=False, log=False)
         return rc == 0
 
-    def _resolve_file(self, file):
+    def resolve_file(self, file):
         path = Path(file)
         if path.is_absolute():
             if not path.exists():
@@ -129,53 +129,7 @@ class AutoMac:
 
     def killall(self, *app_names: str):
         for app in app_names:
-            self.exec(['killall', app], check=False)
-
-    def exec_and_capture(self, cmd: list, check=True, shell=False, charset='utf-8', stderr=subprocess.PIPE, log=False):
-        cmd_str = shlex.join(cmd)
-        if log:
-            logging.info(f'EXEC: {cmd_str}')
-        p = subprocess.Popen(cmd, stderr=stderr, stdout=subprocess.PIPE, shell=shell)
-        stdout, stderr = p.communicate()
-        if check and p.returncode != 0:
-            self.abort(f'Shell command failed: {cmd_str} - exit code {p.returncode}')
-        return p.returncode, stdout.decode(charset).strip()
-
-    def _exec_interactive(self, cmd: Union[str, list], check=True, stdout=None, stderr=None, log=True):
-        if isinstance(cmd, list):
-            cmd_str = shlex.join(cmd)
-            cmd_list = cmd
-        elif isinstance(cmd, str):
-            cmd_str = cmd
-            cmd_list = shlex.split(cmd)
-        else:
-            raise Exception('should not happen')
-        if log:
-            logging.info(f'Exec: {cmd_str}')
-        p = subprocess.Popen(cmd_list, stdout=stdout, stderr=stderr)
-        stdout, stderr = p.communicate()
-        if check and p.returncode != 0:
-            self.abort(f'Shell command failed: {cmd_str} - exit code {p.returncode}')
-        return p.returncode
-
-    def exec(self, cmd: Union[str, list], check=True, log=True):
-        return self._exec_interactive(cmd, check=check, log=log)
-
-    def sudo(self, cmd: Union[str, list], check=True, charset='utf-8'):
-        if isinstance(cmd, str):
-            cmd = shlex.split(cmd)
-        cmd_list = ['sudo', '-S', '--'] + cmd
-        cmd_str = shlex.join(cmd_list)
-        logging.info(f'Exec: {cmd_str}')
-        p = subprocess.Popen(cmd_list, stdout=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        if p.returncode != 0 and check:
-            self.abort(f'Last command exited with code {p.returncode}')
-        return stdout.decode(charset).rstrip()
-
-    def exec_script_file(self, shell_script_file, shell='bash'):
-        shell_script_file = self._resolve_file(shell_script_file)
-        self.exec([shell, str(shell_script_file)])
+            self.exec.exec(['killall', app], check=False)
 
     def manual_step(self, text):
         self.manual_steps.append(text)
@@ -194,9 +148,9 @@ class AutoMac:
         :return: 
         """
         # todo pgrep matches not only 'TopNotch' but 'TopNot' too
-        rc = self._exec_interactive(['pgrep', app_base_name], check=False, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    log=False)
+        rc = self.exec.exec_interactive(['pgrep', app_base_name], check=False, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        log=False)
         return rc == 0
 
     def run_app(self, app: str):
@@ -209,34 +163,7 @@ class AutoMac:
         assert '/' not in base_name
         if not self.is_app_running(base_name):
             abs_path = self.resolve_app_path(app)
-            self.exec(['open', abs_path])
-
-    def sudo_temp_file(self, content: list, executor='bash'):
-        assert executor
-        assert content
-        script_file = tempfile.mktemp('.sh')
-        text = '\n'.join(content)
-        Path(script_file).write_text(text)
-        self.sudo([executor, script_file])
-
-    def exec_temp_file(self, content: list, executor='bash', check=True, log=True):
-        assert executor
-        assert content
-        script_file = tempfile.mktemp('.sh')
-        text = '\n'.join(content)
-        if log:
-            for line in content:
-                logging.info(f'EXEC LINE: {line}')
-        Path(script_file).write_text(text)
-        return self.exec([executor, script_file], check=check, log=log)
-
-    def exec_osa_script(self, text: str, check=True, log=True):
-        assert text
-        script_file = tempfile.mktemp('.sh')
-        if log:
-            logging.info(f'EXEC OSA SCRIPT: {text}')
-        Path(script_file).write_text(text)
-        return self.exec_and_capture(['osascript', script_file], check=check, log=log)
+            self.exec.exec(['open', abs_path])
 
     def user_shell(self, shell_path: str):
         """
@@ -246,8 +173,8 @@ class AutoMac:
         """
 
         def current_shell():
-            rc, stdout = self.exec_and_capture(['dscl', '.', '-read', f'/Users/{util.get_login()}', 'UserShell'],
-                                               check=False)
+            rc, stdout = self.exec.exec_and_capture(['dscl', '.', '-read', f'/Users/{util.get_login()}', 'UserShell'],
+                                                    check=False)
             # todo warn if rc != 0
             # stdout be like 'UserShell:   /bin/zsh'
             words = stdout.split()
@@ -262,7 +189,7 @@ class AutoMac:
         assert os.geteuid() != 0  # not root; health check
         etc_shells = '/etc/shells'
         if not is_shell_registered():
-            self.sudo_temp_file([
+            self.exec.sudo_temp_file([
                 'set -x',
                 f'echo "{shell_path}" | sudo tee -a {etc_shells}',
             ])
@@ -270,7 +197,7 @@ class AutoMac:
         if not cur_shell:
             self.warn(f'Failed to determine login shell for user {util.get_login()}')
         if shell_path != cur_shell:
-            self.exec(['chsh', '-s', shell_path, util.get_login()])
+            self.exec.exec(['chsh', '-s', shell_path, util.get_login()])
             self.manual_step('New shell session required')
 
     def link(self, master_file: str, alias: str):
@@ -300,7 +227,7 @@ class AutoMac:
             pass
         else:
             # todo hide stderr
-            self.sudo(['systemsetup', '-settimezone', tz_name])
+            self.exec.sudo(['systemsetup', '-settimezone', tz_name])
 
     def all_computer_names(self, name):
         """
@@ -621,7 +548,7 @@ class AutoMac:
         if any_missing:
             xmls = [lang.xml_str() for lang in langs]
             cmd = ['defaults', 'write', domain, key, '-array'] + xmls
-            self.exec(cmd)
+            self.exec.exec(cmd)
 
     def _keyboard_languages_abc_and_ru_pc(self):
         # todo remove
@@ -631,7 +558,7 @@ class AutoMac:
         old_value = self.defaults.read(domain, key)
         done = ('252' in old_value) and ('19458' in old_value)
         if not done:
-            self.exec([
+            self.exec.exec([
                 'defaults', 'write', domain, key, '-array',
                 '<dict><key>InputSourceKind</key><string>Keyboard Layout</string><key>KeyboardLayout ID</key><integer>252</integer><key>KeyboardLayout Name</key><string>ABC</string></dict>',
                 '<dict><key>Bundle ID</key><string>com.apple.CharacterPaletteIM</string><key>InputSourceKind</key><string>Non Keyboard Input Method</string></dict>',
@@ -718,18 +645,18 @@ class AutoMac:
         :param app_name_or_path:
         :return: bundle id; or throw exception if app not found
         """
-        rc, bundle_id = self.exec_and_capture(['osascript', '-e', f'id of app "{app_name_or_path}"'])
+        rc, bundle_id = self.exec.exec_and_capture(['osascript', '-e', f'id of app "{app_name_or_path}"'])
         return bundle_id
 
     def quarantine_remove_app(self, app_name: str):
         app_path = self.resolve_app_path(app_name)
         xattrs = self._get_xattrs(app_path)
         if 'com.apple.quarantine' in xattrs:
-            self.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
+            self.exec.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
 
     def _get_xattrs(self, path: str):
         assert os.path.exists(path)
-        rc, stdout = self.exec_and_capture(['xattr', path])
+        rc, stdout = self.exec.exec_and_capture(['xattr', path])
         return stdout.splitlines()
 
     def get_mac_version_str(self):
@@ -752,9 +679,9 @@ class AutoMac:
         """
         # XXX sysadminctl prints current status to stderr bsr
         # XXX password '-' means that user will be asked for it in prompt
-        rc, text = self.exec_and_capture(['sysadminctl', '-screenLock', 'status'], stderr=subprocess.STDOUT)
+        rc, text = self.exec.exec_and_capture(['sysadminctl', '-screenLock', 'status'], stderr=subprocess.STDOUT)
         if 'screenLock is off' not in text:
-            self.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
+            self.exec.exec(['sysadminctl', '-screenLock', 'off', '-password', password if password else '-'])
 
     def desktop_iphone_widgets_disable(self):
         """
@@ -784,8 +711,8 @@ class AutoMac:
         Return current list of login items in form of ['Dropbox', 'TopNotch'].
         No full paths or uniq ids.
         """
-        rc, out = self.exec_osa_script('''tell application "System Events" to get the name of every login item''',
-                                       log=False)
+        rc, out = self.exec.exec_osa_script('''tell application "System Events" to get the name of every login item''',
+                                            log=False)
         items = out.split(',')
         items = list(map(str.strip, items))
         items = list(filter(bool, items))
@@ -799,4 +726,4 @@ class AutoMac:
         # not sure what param `hidden` means
         # subsequent addition has no effect, 14.7
         text = f'''tell application "System Events" to make login item at end with properties {{path:"{app_path}", hidden:true}}'''
-        self.exec_osa_script(text)
+        self.exec.exec_osa_script(text)
