@@ -49,6 +49,8 @@ https://github.com/tech-otaku/menu-bar-clock
 
 # xcode cli tools version compatibility
 
-- macos 13.6 - 14.3
-- macos 14.7 - 14.3, 15.3
-- macos 15.0 - 16.0
+| macos | tools      |
+|-------|------------|
+| 13.6  | 14.3       |
+| 14.7  | 14.3, 15.3 |
+| 15.0  | 16.0       |
