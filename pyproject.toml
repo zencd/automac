@@ -22,3 +22,5 @@ dev = [
 #build-backend = "flit_core.buildapi"
 #requires = ["flit_core >=3.2,<4"]
 
+#[tool.setuptools]
+#py-modules = ['automac', 'util']
