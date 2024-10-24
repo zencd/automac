@@ -160,6 +160,7 @@ class AutoMac(AutoMacBase):
         assert os.path.isabs(shell_path)
         assert os.geteuid() != 0  # not root; health check
         etc_shells = '/etc/shells'
+        assert os.path.exists(etc_shells)
         if not is_shell_registered():
             self.exec.sudo_temp_file([
                 'set -x',
@@ -527,7 +528,7 @@ class AutoMac(AutoMacBase):
             cmd = ['defaults', 'write', domain, key, '-array'] + xmls
             self.exec.exec(cmd)
 
-    def _keyboard_languages_abc_and_ru_pc(self):
+    def __keyboard_languages_abc_and_ru_pc(self):
         # todo remove
         # Set two input languages: ABC and Russian PC.
         domain = 'com.apple.HIToolbox'
