@@ -152,4 +152,4 @@ with AutoMac() as mac:
     mac.ical.skip_welcome_screen()
 
     mac.login_items_add('/Applications/TopNotch.app')
-    mac.run_app('TopNotch')
+    mac.run_app('/Applications/TopNotch.app')
