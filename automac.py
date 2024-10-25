@@ -17,6 +17,7 @@ from features.defaults import Defaults
 from features.exec import Exec
 from features.fileassoc import FileAssoc
 from features.files import Files
+from features.ical import Calculator
 from features.iina import Iina
 from features.inputlang import InputLang
 from features.iterm2 import Iterm2
@@ -46,6 +47,7 @@ class AutoMac(AutoMacBase):
         self.appcleaner = AppCleaner(self)  # type: AppCleaner
         self.iterm2 = Iterm2(self)  # type: Iterm2
         self.iina = Iina(self)  # type: Iina
+        self.ical = Calculator(self)  # type: Calculator
         self.manual_steps = []
         self.success = True
         self._machine_serial = self._resolve_serial_number()
