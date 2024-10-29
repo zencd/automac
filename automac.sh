@@ -35,10 +35,10 @@ fi
 
 BRANCH=${BRANCH:-v1}
 DISTR_URL=https://github.com/zencd/automac/archive/${BRANCH}.zip
-venv=automac-venv
+venv=venv-client
 conf_py=$1
 ensure_cli_tools_installed
-[ -d automac-venv ] || (set -x; python3 -m venv $venv)
+[ -d "$venv" ] || (set -x; python3 -m venv "$venv")
 $venv/bin/python3 -m pip install --upgrade pip
 if ! $venv/bin/python3 -c 'import automac' 2>/dev/null; then
   (set -x; $venv/bin/python3 -m pip install --no-cache-dir --force-reinstall "$DISTR_URL")

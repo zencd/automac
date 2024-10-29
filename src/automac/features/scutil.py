@@ -1,7 +1,7 @@
 class Scutil:
 
     def __init__(self, app):
-        from automac import AutoMac
+        from src.automac.__init__ import AutoMac
         app: AutoMac = app
         self.app = app
 

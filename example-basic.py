@@ -2,7 +2,8 @@ import re
 import sys
 
 from automac import AutoMac
-from features.inputlang import InputLangs
+from automac.__init__ import AutoMac
+from src.automac.features.inputlang import InputLangs
 
 
 def cask_full(cask, app, enable_notifications=True):
