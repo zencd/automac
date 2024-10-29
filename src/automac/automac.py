@@ -18,10 +18,10 @@ from .features.defaults import Defaults
 from .features.exec import Exec
 from .features.fileassoc import FileAssoc
 from .features.files import Files
-from .features.ical import Calculator
-from .features.iina import Iina
+from automac.features.apps.ical import Calculator
+from automac.features.apps.iina import Iina
 from .features.inputlang import InputLang
-from .features.iterm2 import Iterm2
+from automac.features.apps.iterm2 import Iterm2
 from .features.notifications import Notifications
 from .features.scutil import Scutil
 
