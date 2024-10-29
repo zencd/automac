@@ -10,7 +10,11 @@ script_dir=$(dirname -- "$(readlink -f -- "$0")")
 
 set -e
 
+# preventing warnings
 (set -x; pip install --upgrade pip)
+
+# only used to build xxx.tar.gz artifacts
+(set -x; pip install build)
 
 # install requirements for setup.py
 (set -x; pip install setuptools)

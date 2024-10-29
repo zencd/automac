@@ -1,7 +1,7 @@
 import sys
 from setuptools import setup
 
-dev_requirements = ['pytest>=7.0']
+dev_requirements = ['pytest>=7.0', 'twine>=4.0.2']
 
 if len(sys.argv) >= 2 and sys.argv[1] == 'print-dev-requirements':
     for dep in dev_requirements:

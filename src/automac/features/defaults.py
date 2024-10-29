@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from typing import Union
 from xml.etree.ElementTree import Element
 
-import util
+from automac import util
 
 
 class Defaults:

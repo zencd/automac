@@ -1,11 +1,13 @@
 *.egg-info
 *.log
+*.whl
 .DS_Store
 /.idea
 /.venv
 /automac-from-scratch.sh
-/automac.egg-info
+/build
 /diff
+/dist
 /dropbox-mini
 /example-dev.py
 /example-finish.py
@@ -16,4 +18,5 @@
 /scenario*.py
 /sudo*.py
 /tmp*
+/venv
 __pycache__

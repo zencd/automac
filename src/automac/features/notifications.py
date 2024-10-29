@@ -2,7 +2,7 @@ import logging
 import os
 import plistlib
 
-import util
+from automac import util
 
 
 class Notifications:

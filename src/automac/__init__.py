@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import util
+from . import util
 from .features.appcleaner import AppCleaner
 from .features.apps import Apps
 from .features.brew import Homebrew

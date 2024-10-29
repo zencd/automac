@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 
-import util
+from automac import util
 
 
 class Homebrew:
