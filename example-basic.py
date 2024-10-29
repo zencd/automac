@@ -2,7 +2,6 @@ import re
 import sys
 
 from automac import AutoMac
-from automac.__init__ import AutoMac
 from src.automac.features.inputlang import InputLangs
 
 
@@ -41,7 +40,7 @@ with AutoMac() as mac:
     mac.link('~/Dropbox/config/dotfiles/curlrc.txt', '~/.curlrc')
     mac.link('~/Dropbox/config/dotfiles/inputrc.txt', '~/.inputrc')
     mac.link('~/Library/Preferences', '~/prefs')
-    mac.link('~/Library/Application Support', '~/appsup')
+    mac.link('~/Library/Application Support', '~/support')
 
     mac.link('~/Dropbox/config/sublime/User', '~/Library/Application Support/Sublime Text/Packages/User')
     # MANUAL STEP: Start Sublime; install package control; packages will be installed automatically
