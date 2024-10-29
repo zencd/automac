@@ -12,7 +12,7 @@ from . import util
 from .base import AutoMacBase
 from .exceptions import StopException, AbortException, BadAutomacException
 from .features.appcleaner import AppCleaner
-from .features.apps import Apps
+from automac.features.apps.__init__ import Apps
 from .features.brew import Homebrew
 from .features.defaults import Defaults
 from .features.exec import Exec

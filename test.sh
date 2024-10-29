@@ -1,0 +1,2 @@
+set -x
+pytest test/
