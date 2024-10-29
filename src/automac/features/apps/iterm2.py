@@ -2,7 +2,7 @@ class Iterm2:
     DOMAIN = 'com.googlecode.iterm2'
 
     def __init__(self, app):
-        from src.automac.__init__ import AutoMac
+        from automac import AutoMac
         app: AutoMac = app
         self.app = app
 

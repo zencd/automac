@@ -11,7 +11,7 @@ class Homebrew:
     # XXX simple command `brew install xxx` tries to upgrade such package, so not using it
 
     def __init__(self, app):
-        from src.automac.__init__ import AutoMac
+        from automac import AutoMac
         app: AutoMac = app
         self.app = app
         self.installed_packages_ = None  # populated on demand

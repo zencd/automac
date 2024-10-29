@@ -9,7 +9,7 @@ class Notifications:
     flags_base = 8396814  # macos 13.7 defaults: notifications off, badges, sounds, banners
 
     def __init__(self, app):
-        from src.automac.__init__ import AutoMac
+        from automac import AutoMac
         app: AutoMac = app
         self.app = app
         self.do_reload_configs = False
