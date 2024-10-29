@@ -5,10 +5,12 @@ import os
 import platform
 import re
 import subprocess
-import sys
+import traceback
 from pathlib import Path
 
 from . import util
+from .base import AutoMacBase
+from .exceptions import StopException, AbortException, BadAutomacException
 from .features.appcleaner import AppCleaner
 from .features.apps import Apps
 from .features.brew import Homebrew
@@ -22,9 +24,10 @@ from .features.inputlang import InputLang
 from .features.iterm2 import Iterm2
 from .features.notifications import Notifications
 from .features.scutil import Scutil
-from .base import AutoMacBase
 
 debug_level = logging.DEBUG
+
+
 # debug_level = logging.INFO
 
 
@@ -61,11 +64,23 @@ class AutoMac(AutoMacBase):
         logging.debug(f'getpass.getuser(): {getpass.getuser()}')
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Exception, exc_val, exc_tb):
+        if exc_val:
+            try:
+                raise exc_val.with_traceback(exc_tb)
+            except:
+                traceback.print_exc()
+
+        if isinstance(exc_val, BadAutomacException):
+            self.success = False
+
         if self.success:
             if self.notifications.do_reload_configs:
                 self.notifications.os_to_reload_configs()
             print('OK')
+        else:
+            print('FAIL')
+
         if self.manual_steps:
             print('')
             print('Manual setup required:')
@@ -119,10 +134,13 @@ class AutoMac(AutoMacBase):
     def manual_step(self, text):
         self.manual_steps.append(text)
 
+    def stop(self):
+        raise StopException()
+
     def abort(self, msg):
         self.success = False
         logging.error(f'ABORT: {msg}')
-        sys.exit(1)
+        raise AbortException(msg)
 
     def warn(self, msg):
         logging.warning(f'WARNING: {msg}')
@@ -524,7 +542,8 @@ class AutoMac(AutoMacBase):
         domain = 'com.apple.HIToolbox'
         key = 'AppleEnabledInputSources'
         old_value = self.defaults.read(domain, key)
-        any_missing = any(lang for lang in langs if f'= {lang.get_code()};' not in old_value)  # todo poor implementation now
+        any_missing = any(
+            lang for lang in langs if f'= {lang.get_code()};' not in old_value)  # todo poor implementation now
         if any_missing:
             xmls = [lang.to_plist_xml_str() for lang in langs]
             cmd = ['defaults', 'write', domain, key, '-array'] + xmls

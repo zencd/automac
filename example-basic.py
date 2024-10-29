@@ -21,7 +21,7 @@ with AutoMac() as mac:
         mac.brew.analytics_off()
         cask_full('dropbox', 'Dropbox')
         mac.manual_step('Start Dropbox; sync config folder; start this script again')
-        sys.exit(0)
+        mac.stop()
 
     mac.brew.install_homebrew()
     mac.brew.analytics_off()
