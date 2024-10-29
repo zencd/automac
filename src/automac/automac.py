@@ -11,7 +11,7 @@ from pathlib import Path
 from . import util
 from .base import AutoMacBase
 from .exceptions import StopException, AbortException, BadAutomacException
-from .features.appcleaner import AppCleaner
+from automac.features.apps.appcleaner import AppCleaner
 from automac.features.apps.__init__ import Apps
 from .features.brew import Homebrew
 from .features.defaults import Defaults

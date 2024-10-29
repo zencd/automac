@@ -1,6 +1,10 @@
 import os
 import subprocess
 
+"""
+GUI apps in this module.
+"""
+
 
 class Apps:
     def __init__(self, app):
