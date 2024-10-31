@@ -31,7 +31,7 @@ debug_level = logging.DEBUG
 # debug_level = logging.INFO
 
 
-class AutoMac(AutoMacBase):
+class _AutoMac(AutoMacBase):
 
     def __init__(self):
         logging.basicConfig(

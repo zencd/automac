@@ -1,1 +1,1 @@
-from .automac import AutoMac
+from .automac import _AutoMac as AutoMac
