@@ -52,7 +52,9 @@ class Homebrew:
         list_file = self.app.resolve_file(list_file)
         logging.debug(f'Installing brew formulas from {list_file}')
         lines = util.read_file_lines(list_file)
-        lines = list(filter(lambda line: line and ('#' not in line), lines))
+        lines = map(lambda x: re.sub(r'#.*', '', x), lines)
+        lines = map(str.strip, lines)
+        lines = filter(bool, lines)
         cnt = 0
         for package in lines:
             self.install_formula(package)
@@ -64,7 +66,7 @@ class Homebrew:
         if package_lo in self.installed_packages:
             # print(f'Already installed: {package}')
             return
-        self.app.exec.exec([self.brew_exe, 'install', package])
+        self.app.exec.exec([self.brew_exe, 'install', '--formula', package])
 
     def install_casks(self, list_file: str):
         list_file = self.app.resolve_file(list_file)
@@ -89,11 +91,11 @@ class Homebrew:
         if existing_macos_apps:
             logging.debug(f'No cask `{package}` installed but macos apps already exists: {existing_macos_apps} - skip')
             return
-        # self.setup_manager.exec_string(f'brew install --cask {package}')
         self.app.exec.exec([self.brew_exe, 'install', '--cask', package])
 
     def _check_existing_brew_cask(self, package):
-        rc, stdout = self.app.exec.exec_and_capture([self.brew_exe, 'info', package], check=False)
+        # adding --cask because there can be both formula and cask under one name
+        rc, stdout = self.app.exec.exec_and_capture([self.brew_exe, 'info', '--cask', package], check=False)
         installed_via_brew = rc == 0 and 'Not installed' not in stdout
         existing_macos_apps = self._find_macos_apps(stdout)
         return installed_via_brew, existing_macos_apps
