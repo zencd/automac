@@ -1,0 +1,7 @@
+[project]
+name = "automac"
+version = "1.0.0"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ['pytest>=7.0', 'twine>=4.0.2']

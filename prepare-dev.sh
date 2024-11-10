@@ -4,28 +4,24 @@
 # execute it once per venv
 
 # preconditions
-script_dir=$(dirname -- "$(readlink -f -- "$0")")
-[ ! "$script_dir" -ef '.' ] && echo "Run $(basename "$0") from $script_dir" && exit 1
 [ -z "$VIRTUAL_ENV" ] && echo "Run $(basename "$0") within a virtual environment" && exit 1
+cd -- "$(dirname -- "$(readlink -f -- "$0")")" || exit 1
 
-set -e
+set -xe
 
-# preventing warnings
-(set -x; pip install --upgrade pip)
+# prevent warnings
+pip install --upgrade pip
 
-# only used to build xxx.tar.gz artifacts
-(set -x; pip install build)
+# only used to build tar.gz artifacts (sdist)
+pip install build
 
 # install requirements for setup.py
-(set -x; pip install setuptools)
+# seems not really useful but otherwise you will see unresolved symbols in setup.py in IDE
+pip install setuptools
 
-# install requirements for development; picking them from setup.py
-stdout=$(python setup.py print-dev-requirements)
-echo "$stdout" | while IFS= read -r line; do
-  (set -x; pip install "$line")
-done
-
-# install the package we are developing into the current virtual environment
-# thus it can be imported in any python file by its absolute name
+# install package `mypak` (which we are developing) into the current virtual environment
+# thus we will be able to do `import mypak` in any python file within the project
 # performing "editable install", -e, so any changes in the package will be reflected without the need to reinstall it
-(set -x; pip install -e .)
+# '.[dev]' will install `mypak` plus all `dev` dependencies defined in setup.py; see `extras_require` there
+# '.' will install only `mypak`; we are not using that
+pip install -e '.[dev]'

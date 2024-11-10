@@ -1,9 +1,11 @@
 import unittest
 
+from automac import AutoMac
+
 
 class MyTestCase(unittest.TestCase):
     def test_1(self):
-        self.assertEqual(True, True)
+        AutoMac()
 
 
 if __name__ == '__main__':
