@@ -126,8 +126,7 @@ class Homebrew:
 
     def _find_brew_executable(self):
         dirs = [
-            str(Path('~/homebrew').expanduser()),
-            str(Path('~/brew').expanduser()),
+            str(Path('~/bin/brew').expanduser()),
             '/opt/homebrew',
             '/usr/local',
         ]
