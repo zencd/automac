@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import subprocess
+from pathlib import Path
 
 from automac import util
 
@@ -124,7 +125,13 @@ class Homebrew:
             self.app.abort('Brew not found')
 
     def _find_brew_executable(self):
-        for path in ['/opt/homebrew/bin/brew', '/usr/local/bin/brew']:
+        dirs = [
+            str(Path('~/homebrew').expanduser()),
+            str(Path('~/brew').expanduser()),
+            '/opt/homebrew/bin/brew',
+            '/usr/local/bin/brew',
+        ]
+        for path in dirs:
             if os.path.exists(path):
                 return path
         return None
