@@ -1,14 +1,19 @@
 import re
 
 from automac import AutoMac
+from automac.features.apps import CaskApp, CaskApps
 from automac.features.inputlang import InputLangs
 
 
-def cask_full(cask, app, enable_notifications=True):
+def cask_full_2(cask: str, app: str, enable_notifications=True):
     if not mac.apps.app_exists(app):
         mac.brew.install_cask(cask)
     mac.quarantine_remove_app(app)
     mac.notifications.change_app(app, enable_notifications)
+
+
+def cask_full(cask_app: CaskApp, enable_notifications=True):
+    cask_full_2(cask_app.cask, cask_app.app_name, enable_notifications)
 
 
 with AutoMac() as mac:
@@ -18,7 +23,7 @@ with AutoMac() as mac:
     if not mac.file_exists('~/Dropbox'):
         mac.brew.install_homebrew()
         mac.brew.analytics_off()
-        cask_full('dropbox', 'Dropbox')
+        cask_full_2('dropbox', 'Dropbox')
         mac.manual_step('Start Dropbox; sync config folder; start this script again')
         mac.stop()
 
@@ -97,18 +102,18 @@ with AutoMac() as mac:
 
     mac.desktop_iphone_widgets_disable()
 
-    cask_full('dropbox', 'Dropbox')
-    cask_full('appcleaner', 'AppCleaner')
-    # cask_full('brave-browser', 'Brave Browser')
-    cask_full('iina', 'IINA.app')
-    cask_full('iterm2', 'iTerm.app')
-    cask_full('keepassxc', 'KeePassXC.app')
-    # cask_full('pycharm-ce', 'PyCharm CE.app')
-    cask_full('sublime-text', 'Sublime Text.app')
-    cask_full('telegram', 'Telegram.app')
-    cask_full('topnotch', 'TopNotch.app')
-    # cask_full('dbeaver-community', 'DBeaver')
-    # cask_full('openmtp', 'OpenMTP')
+    cask_full_2('dropbox', 'Dropbox')
+    cask_full(CaskApps.appcleaner)
+    # cask_full(CaskApps.brave)
+    cask_full(CaskApps.iina)
+    cask_full(CaskApps.iterm2)
+    cask_full(CaskApps.keepassxc)
+    # cask_full(CaskApps.pycharmce)
+    cask_full(CaskApps.sublimetext)
+    cask_full(CaskApps.telegram)
+    cask_full(CaskApps.topnotch)
+    # cask_full(CaskApps.dbeavercommunity)
+    # cask_full(CaskApps.openmtp)
 
     mac.notifications.enable_app(
         '/Applications/Brave Browser.app/Contents/Frameworks/Brave Browser Framework.framework/Versions/Current/Helpers/Brave Browser Helper (Alerts).app')
@@ -130,7 +135,7 @@ with AutoMac() as mac:
     mac.assoc_file_extensions_viewer('IINA', video_files)
     mac.assoc_file_extensions_viewer('IINA', audio_files)
 
-    # todo `plist` - WARNING Failed reassigning `plist` from `com.apple.dt.Xcode` to `com.sublimetext.4` with role `editor`. Probably you want a stronger role: `editor` or `all`
+    # todo `plist` - WARNING Failed reassigning `plist` from `com.apple.dt.Xcode` to `com.sublimetext.4` with role `editor`.
     # mac.assoc_file_extensions_editor('Sublime Text', ['plist'])
 
     (mac.appcleaner

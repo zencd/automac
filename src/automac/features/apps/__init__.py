@@ -59,3 +59,23 @@ class Apps:
         xattrs = self.app.get_xattrs(app_path)
         if 'com.apple.quarantine' in xattrs:
             self.app.exec.exec(['xattr', '-dr', 'com.apple.quarantine', app_path])
+
+
+class CaskApp:
+    def __init__(self, cask: str, app_name: str):
+        self.cask = cask
+        self.app_name = app_name
+
+class CaskApps:
+    dropbox = CaskApp('dropbox', 'Dropbox.app')
+    appcleaner = CaskApp('appcleaner', 'AppCleaner')
+    brave = CaskApp('brave-browser', 'Brave Browser')
+    iina = CaskApp('iina', 'IINA')
+    iterm2 = CaskApp('iterm2', 'iTerm')
+    keepassxc = CaskApp('keepassxc', 'KeePassXC')
+    pycharmce = CaskApp('pycharm-ce', 'PyCharm CE')
+    sublimetext = CaskApp('sublime-text', 'Sublime Text')
+    telegram = CaskApp('telegram', 'Telegram')
+    topnotch = CaskApp('topnotch', 'TopNotch')
+    dbeavercommunity = CaskApp('dbeaver-community', 'DBeaver')
+    openmtp = CaskApp('openmtp', 'OpenMTP')
