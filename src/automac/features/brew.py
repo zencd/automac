@@ -128,10 +128,11 @@ class Homebrew:
         dirs = [
             str(Path('~/homebrew').expanduser()),
             str(Path('~/brew').expanduser()),
-            '/opt/homebrew/bin/brew',
-            '/usr/local/bin/brew',
+            '/opt/homebrew',
+            '/usr/local',
         ]
-        for path in dirs:
-            if os.path.exists(path):
-                return path
+        for diry in dirs:
+            exe = f'{diry}/bin/brew'
+            if os.path.exists(exe):
+                return exe
         return None
